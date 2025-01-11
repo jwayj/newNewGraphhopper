@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GeoJSON Map</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+</head>
+<body>
+    <div id="map" style="width: 100%; height: 600px;"></div>
+    <script>
+        // 지도 초기화
+        var map = L.map('map').setView([42.50779, 1.52109], 15);
+
+        // OSM 타일 레이어 추가
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // fetch를 이용해 GeoJSON 데이터 불러오기
+        fetch('route.geojson') // GeoJSON 파일 경로
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // GeoJSON 데이터를 route 변수에 저장
+                var route = data;
+
+                // 데이터를 지도에 추가
+                L.geoJSON(route).addTo(map);
+            })
+            .catch(err => {
+                console.error('Error loading GeoJSON:', err);
+            });
+    </script>
+</body>
+</html>
