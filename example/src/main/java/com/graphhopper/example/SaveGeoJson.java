@@ -1,29 +1,30 @@
 package com.graphhopper.example;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 public class SaveGeoJson {
     public static void saveToFile(String geoJson, String fileName) throws IOException {
-        // 절대 경로로 지정
-        String absolutePath = "C:\\Users\\Owner\\graphhopper\\example\\src\\main\\java\\com\\graphhopper\\example";
-        File currentDir = new File(absolutePath);
-
-        // 경로가 존재하지 않으면 생성
-        if (!currentDir.exists()) {
-            boolean created = currentDir.mkdirs();
-            if (!created) {
-                throw new IOException("디렉토리를 생성할 수 없습니다: " + currentDir.getAbsolutePath());
-            }
+        if (geoJson == null || fileName == null || fileName.isEmpty()) {
+            throw new IllegalArgumentException("GeoJSON string and file name must not be null or empty");
         }
 
-        // 파일 저장 경로 설정
+        // 현재 작업 디렉토리를 기준으로 상대 경로 사용
+        String relativePath = "./example/src/main/java/com/graphhopper/example";
+        File currentDir = new File(System.getProperty("user.dir"), relativePath);
+
+        if (!currentDir.exists() && !currentDir.mkdirs()) {
+            throw new IOException("Failed to create directory: " + currentDir.getAbsolutePath());
+        }
+
         File targetFile = new File(currentDir, fileName);
 
-        try (FileWriter fileWriter = new FileWriter(targetFile)) {
-            fileWriter.write(geoJson);
-            System.out.println("GeoJSON 파일이 저장되었습니다: " + targetFile.getAbsolutePath());
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(targetFile, StandardCharsets.UTF_8))) {
+            writer.write(geoJson);
+            System.out.println("GeoJSON file saved: " + targetFile.getAbsolutePath());
         }
     }
 }
