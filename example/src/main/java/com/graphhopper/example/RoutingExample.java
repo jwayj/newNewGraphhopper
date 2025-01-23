@@ -1,5 +1,6 @@
 package com.graphhopper.example;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -14,6 +15,7 @@ import com.graphhopper.ResponsePath;
 import com.graphhopper.config.CHProfile;
 import com.graphhopper.config.LMProfile;
 import com.graphhopper.config.Profile;
+import com.graphhopper.json.Statement;
 import static com.graphhopper.json.Statement.If;
 import static com.graphhopper.json.Statement.Op.LIMIT;
 import static com.graphhopper.json.Statement.Op.MULTIPLY;
@@ -110,8 +112,9 @@ public class RoutingExample {
         
         // 각 랜덤 지점에 대해 경로 찾기
         for (GHPoint intermediatePoint : nearbyPoints) {
-            ResponsePath path1 = findPath(hopper, start, intermediatePoint);
-            ResponsePath path2 = findPath(hopper, intermediatePoint, end);
+            ResponsePath path1 = findPath(hopper, start, intermediatePoint, "foot");
+            ResponsePath path2 = findPath(hopper, intermediatePoint, end, "foot");
+
             
             if (path1 != null && path2 != null) {
                 double totalDistance = path1.getDistance() + path2.getDistance();
@@ -130,7 +133,7 @@ public class RoutingExample {
     
         if (bestPath == null) {
             System.out.println("원하는 거리의 경로를 찾을 수 없습니다. 직접 연결 경로를 반환합니다.");
-            return findPath(hopper, start, end);
+            return findPath(hopper, start, end, "foot");
         }
         
         System.out.println("가장 가까운 경로를 찾았습니다. 차이: " + closestDifference + " 미터");
@@ -143,22 +146,17 @@ public class RoutingExample {
     
 
 
-    private static ResponsePath findPath(GraphHopper hopper, GHPoint start, GHPoint end) {
+    private static ResponsePath findPath(GraphHopper hopper, GHPoint start, GHPoint end, String profile) {
         GHRequest req = new GHRequest(start, end)
             .setAlgorithm(Parameters.Algorithms.ASTAR_BI)
-            .setProfile("car");
-            //.setWeighting("fastest");
+            .setProfile(profile);
         GHResponse rsp = hopper.route(req);
         if (rsp.hasErrors()) {
-            // A*로 실패하면 Dijkstra 알고리즘 시도
-            req.setAlgorithm(Parameters.Algorithms.DIJKSTRA_BI);
-            rsp = hopper.route(req);
-            if (rsp.hasErrors()) {
-                return null;
-            }
+            return null;
         }
         return rsp.getBest();
     }
+    
     
 
     private static ResponsePath combinePaths(ResponsePath path1, ResponsePath path2) {
@@ -206,62 +204,82 @@ public class RoutingExample {
 
 
     static GraphHopper createGraphHopperInstance(String ghLoc) {
+        // 기존 캐시 삭제
+        File cacheDir = new File("target/routing-graph-cache");
+        if (cacheDir.exists()) {
+            for (File file : cacheDir.listFiles()) {
+                file.delete();
+            }
+            cacheDir.delete();
+            System.out.println("Existing cache deleted.");
+        }
+
+        // GraphHopper 인스턴스 생성 및 설정
         GraphHopper hopper = new GraphHopper();
         hopper.setOSMFile(ghLoc);
-        // specify where to store graphhopper files
         hopper.setGraphHopperLocation("target/routing-graph-cache");
 
-        // add all encoded values that are used in the custom model, these are also available as path details or for client-side custom models
-        hopper.setEncodedValuesString("car_access, car_average_speed");
-        // see docs/core/profiles.md to learn more about profiles
-        hopper.setProfiles(new Profile("car").setCustomModel(GHUtility.loadCustomModelFromJar("car.json")));
+        // 필요한 모든 Encoded Values 추가
+        hopper.setEncodedValuesString("foot_access, foot_average_speed, road_class, max_speed");
 
-        // this enables speed mode for the profile we called car
-        hopper.getCHPreparationHandler().setCHProfiles(new CHProfile("car"));
+        // CustomModel 설정
+        CustomModel customModel = new CustomModel();
 
-        // now this can take minutes if it imports or a few seconds for loading of course this is dependent on the area you import
+        // 우선순위 설정
+        customModel.getPriority().add(Statement.If("road_class == RESIDENTIAL", Statement.Op.MULTIPLY, "0.8"));
+        customModel.getPriority().add(Statement.ElseIf("road_class == FOOTWAY", Statement.Op.MULTIPLY, "1.2"));
+        customModel.getPriority().add(Statement.Else(Statement.Op.MULTIPLY, "1.0")); // 기본값
+
+        // 속도 설정
+        customModel.getSpeed().add(Statement.If("max_speed > 50", Statement.Op.LIMIT, "50"));
+        customModel.getSpeed().add(Statement.Else(Statement.Op.LIMIT, "30")); // 기본 속도 제한
+
+        // 거리 영향도 설정
+        customModel.setDistanceInfluence(70.0);
+
+        // Profile 설정
+        Profile footProfile = new Profile("foot")
+                .setWeighting("custom")
+                .setCustomModel(customModel);
+        hopper.setProfiles(footProfile);
+
+        // CH 및 LM 설정
+        hopper.getCHPreparationHandler().setCHProfiles(new CHProfile("foot"));
+        hopper.getLMPreparationHandler().setLMProfiles(new LMProfile("foot"));
+
         hopper.importOrLoad();
         return hopper;
     }
 
-    public static ResponsePath routing(GraphHopper hopper, GHPoint start, GHPoint end) {
-        // simple configuration of the request object
-        // GHRequest를 생성해 출발지 목적지 좌표, 프로필, 언어 설정
-        GHRequest req = new GHRequest(start, end).
-                // note that we have to specify which profile we are using even when there is only one like here
-                        setProfile("car").
-                // define the language for the turn instructions
-                        setLocale(Locale.US);
-        // 경로 요청 결과 저장
-        GHResponse rsp = hopper.route(req);
+    
 
-        // handle errors
+    public static ResponsePath routing(GraphHopper hopper, GHPoint start, GHPoint end) {
+        GHRequest req = new GHRequest(start, end)
+            .setProfile("foot")  // 보행자 프로필 사용
+            .setLocale(Locale.US);
+        
+        GHResponse rsp = hopper.route(req);
+    
         if (rsp.hasErrors()) {
             throw new RuntimeException(rsp.getErrors().toString());
         }
-        // use the best path, see the GHResponse class for more possibilities.
-        // 결과들 중에서 best 결과
+    
         ResponsePath path = rsp.getBest();
-
-        // points, distance in meters and time in millis of the full path
-        // 경로 정보(거리, 시간, 지점 등)
-        PointList pointList = path.getPoints();
-        double distance = path.getDistance();
-        long timeInMs = path.getTime();
-
+    
+        // 경로 정보 출력
+        System.out.println("총 거리: " + path.getDistance() + " 미터");
+        System.out.println("예상 소요 시간: " + (path.getTime() / 60000) + " 분");
+    
+        // 경로 안내 출력
         Translation tr = hopper.getTranslationMap().getWithFallBack(Locale.UK);
         InstructionList il = path.getInstructions();
-        
-        // iterate over all turn instructions
-        // 경로 지침을 출력하도록 설정
         for (Instruction instruction : il) {
-            System.out.println("distance " + instruction.getDistance() + " for instruction: " + instruction.getTurnDescription(tr));
+            System.out.println(instruction.getDistance() + "m: " + instruction.getTurnDescription(tr));
         }
-        assert il.size() == 6;
-        assert Helper.round(path.getDistance(), -2) == 600;
-
-        return rsp.getBest();
+    
+        return path;
     }
+    
     
     
 
