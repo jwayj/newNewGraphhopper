@@ -39,13 +39,14 @@ import com.graphhopper.util.shapes.GHPoint;
 public class RoutingExample {
     public static void main(String[] args) {
         String relDir = args.length == 1 ? args[0] : "";
-        GraphHopper hopper = createGraphHopperInstance(relDir + "core/files/andorra.osm.pbf");
+        GraphHopper hopper = createGraphHopperInstance(relDir + "south-korea-latest.osm.pbf");
+        
+        // 대한민국의 대표적인 좌표로 변경 (서울 시청)
+        GHPoint start = new GHPoint(37.566535, 126.977969);
+        GHPoint end = new GHPoint(37.551254, 126.988224);
         
         double desiredDistance = 5000;
     
-        GHPoint start = new GHPoint(42.505552, 1.535936);
-        GHPoint end = new GHPoint(42.510508, 1.528773);
-        
         ResponsePath path1 = routingWithDesiredDistance(hopper, desiredDistance, start, end);
         if (path1 != null) {
             System.out.println("경로 거리: " + path1.getDistance() + " 미터");
@@ -141,10 +142,6 @@ public class RoutingExample {
     }
     
     
-    
-    
-    
-
 
     private static ResponsePath findPath(GraphHopper hopper, GHPoint start, GHPoint end, String profile) {
         GHRequest req = new GHRequest(start, end)
