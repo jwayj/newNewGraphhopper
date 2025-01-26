@@ -109,7 +109,8 @@
 
         Promise.all([
         loadGeoJSON('./route1.geojson', 'blue', 'routingWithDesiredDistance 메소드'),
-        loadGeoJSON('./route2.geojson', 'red', 'routing 메소드')
+        loadGeoJSON('./route2.geojson', 'red', 'routing 메소드'),
+        loadGeoJSON('./route3.geojson', 'green', 'routingWithCircle 메소드')
         ]).then(([route1, route2]) => {
             var bounds = route1.getBounds().extend(route2.getBounds());
             map.fitBounds(bounds);
