@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 
 import com.graphhopper.GHRequest;
 import com.graphhopper.GHResponse;
@@ -51,7 +52,7 @@ public class RoutingExample {
         if (path1 != null) {
             System.out.println("경로 거리: " + path1.getDistance() + " 미터");
             
-            String geoJson1 = GeoJsonExporter.toGeoJSON(path1);
+            String geoJson1 = GeoJsonExporter1.toGeoJSON(path1);
             System.out.println("GeoJSON:\n" + geoJson1);
             try {
                 SaveGeoJson.saveToFile(geoJson1, "route1.geojson");
@@ -67,7 +68,7 @@ public class RoutingExample {
         if (path2 != null) {
             System.out.println("경로 거리: " + path2.getDistance() + " 미터");
             
-            String geoJson2 = GeoJsonExporter.toGeoJSON(path2);
+            String geoJson2 = GeoJsonExporter1.toGeoJSON(path2);
             System.out.println("GeoJSON:\n" + geoJson2);
             try {
                 SaveGeoJson.saveToFile(geoJson2, "route2.geojson");
@@ -77,6 +78,58 @@ public class RoutingExample {
             }
         } else {
             System.out.println("경로를 찾을 수 없습니다.");
+        }
+
+        try {
+            // 출발지 정의
+            GHPoint startPoint = new GHPoint(37.5665, 126.9780); // 서울 시청 근처
+    
+            // 경유지 생성 (랜덤 5개, 범위 확장)
+            PointList waypoints = generateRandomWaypoints(hopper, startPoint, 5, desiredDistance * 0.5, desiredDistance);
+            System.out.println("Generated Waypoints: " + waypoints);
+    
+            // *** 여기부터 경로 생성 코드 추가 ***
+            PointList avoidPoints = new PointList(); // 회피할 포인트 리스트 생성
+            ResponsePath fullPath = null; // 최종 경로 저장
+            GHPoint previousPoint = startPoint; // 출발점을 초기화
+    
+            // Waypoints를 순회하며 경로 생성
+            for (int i = 0; i < waypoints.size(); i++) {
+                GHPoint currentPoint = new GHPoint(waypoints.getLat(i), waypoints.getLon(i));
+                ResponsePath path = findPathAvoiding(hopper, previousPoint, currentPoint, avoidPoints);
+                if (path == null) {
+                    System.out.println("경로 생성 실패: " + previousPoint + " → " + currentPoint);
+                    return; // 실패 시 종료
+                }
+    
+                // 전체 경로에 추가
+                fullPath = (fullPath == null) ? path : combinePaths(fullPath, path);
+    
+                // AvoidPoints에 현재 포인트 추가
+                avoidPoints.add(currentPoint.lat, currentPoint.lon);
+                previousPoint = currentPoint; // 이전 포인트 갱신
+            }
+    
+            // Waypoints를 순회한 후 닫힌 도형을 위한 경로 생성 (마지막 Waypoint → 출발지)
+            ResponsePath closingPath = findPathAvoiding(hopper, previousPoint, startPoint, avoidPoints);
+            if (closingPath != null) {
+                fullPath = combinePaths(fullPath, closingPath);
+            }
+    
+            // GeoJSON 출력
+            PointList startPointList = new PointList();
+            startPointList.add(startPoint.lat, startPoint.lon); // 출발지 추가
+    
+            String geoJson = GeoJsonExporter2.toGeoJSON(fullPath, waypoints, startPointList);
+            System.out.println("GeoJSON:\n" + geoJson);
+    
+            // GeoJSON 저장
+            SaveGeoJson.saveToFile(geoJson, "route.geojson");
+            System.out.println("GeoJSON saved to route.geojson");
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            hopper.close();
         }
     
         hopper.close();
@@ -141,6 +194,53 @@ public class RoutingExample {
         return bestPath;
     }
     
+    static PointList generateRandomWaypoints(GraphHopper hopper, GHPoint start, int numWaypoints, double minDistance, double maxDistance) {
+        Random random = new Random();
+        LocationIndex locationIndex = hopper.getLocationIndex();
+        PointList waypoints = new PointList();
+    
+        for (int i = 0; i < numWaypoints; i++) {
+            for (int attempts = 0; attempts < 100; attempts++) { // 최대 100번 시도
+                double distance = minDistance + (maxDistance - minDistance) * random.nextDouble();
+                double angle = random.nextDouble() * 2 * Math.PI;
+    
+                double deltaLat = (distance / 111000) * Math.cos(angle);
+                double deltaLon = (distance / (111000 * Math.cos(Math.toRadians(start.lat)))) * Math.sin(angle);
+    
+                double lat = start.lat + deltaLat;
+                double lon = start.lon + deltaLon;
+    
+                if (Double.isNaN(lat) || Double.isNaN(lon)) continue;
+    
+                GHPoint candidate = new GHPoint(lat, lon);
+                Snap snap = locationIndex.findClosest(candidate.lat, candidate.lon, EdgeFilter.ALL_EDGES);
+    
+                if (snap.isValid()) {
+                    boolean isTooClose = false;
+                    GHPoint snappedPoint = snap.getSnappedPoint();
+                    
+                    for (int j = 0; j < waypoints.size(); j++) {
+                        double existingLat = waypoints.getLat(j);
+                        double existingLon = waypoints.getLon(j);
+                        GHPoint existingPoint = new GHPoint(existingLat, existingLon);
+    
+                        // calculateDistance 메서드 호출
+                        if (calculateDistance(existingPoint, snappedPoint) < minDistance / 2) {
+                            isTooClose = true;
+                            break;
+                        }
+                    }
+    
+                    if (!isTooClose) {
+                        waypoints.add(snappedPoint.lat, snappedPoint.lon);
+                        break;
+                    }
+                }
+            }
+        }
+    
+        return waypoints;
+    }
     
 
     private static ResponsePath findPath(GraphHopper hopper, GHPoint start, GHPoint end, String profile) {
@@ -196,6 +296,51 @@ public class RoutingExample {
         combinedPath.setDescend(path1.getDescend() + path2.getDescend());
         
         return combinedPath;
+    }
+
+    static ResponsePath findPathAvoiding(GraphHopper hopper, GHPoint start, GHPoint end, PointList avoidPoints) {
+        GHRequest request = new GHRequest()
+                .addPoint(start)
+                .addPoint(end)
+                .setProfile("foot")
+                .setAlgorithm("astar")
+                .putHint("ch.disable", true);
+    
+        if (avoidPoints != null && !avoidPoints.isEmpty()) {
+            request.putHint("routing.avoid_points", avoidPoints);
+        }
+    
+        GHResponse response = hopper.route(request);
+        if (response.hasErrors()) {
+            response.getErrors().forEach(error -> System.err.println("Error during routing: " + error.getMessage()));
+            return null;
+        }
+    
+        return response.getBest();
+    }
+
+    static double calculateDistance(GHPoint point1, GHPoint point2) {
+        double earthRadius = 6371000; // 지구 반지름 (미터 단위)
+        double dLat = Math.toRadians(point2.lat - point1.lat);
+        double dLon = Math.toRadians(point2.lon - point1.lon);
+        double lat1 = Math.toRadians(point1.lat);
+        double lat2 = Math.toRadians(point2.lat);
+
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1) * Math.cos(lat2) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return earthRadius * c;
+    }
+
+    static boolean pointListContains(PointList points, double lat, double lon) {
+        for (int i = 0; i < points.size(); i++) {
+            if (points.getLat(i) == lat && points.getLon(i) == lon) {
+                return true;
+            }
+        }
+        return false;
     }
     
 

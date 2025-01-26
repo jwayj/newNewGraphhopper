@@ -3,7 +3,7 @@ package com.graphhopper.example;
 import com.graphhopper.ResponsePath;
 import com.graphhopper.util.PointList;
 
-public class GeoJsonExporter {
+public class GeoJsonExporter1 {
     public static String toGeoJSON(ResponsePath path) {
         if (path == null) {
             throw new IllegalArgumentException("ResponsePath cannot be null");

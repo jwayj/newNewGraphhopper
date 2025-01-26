@@ -1,9 +1,10 @@
 package com.graphhopper.example;
 
-import com.graphhopper.util.Helper;
+import java.io.File;
+
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
+import com.graphhopper.util.Helper;
 
 public class RoutingExampleTest {
 

@@ -1,5 +1,7 @@
 package com.graphhopper.example;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import com.graphhopper.GraphHopper;
 import com.graphhopper.config.Profile;
 import com.graphhopper.isochrone.algorithm.ShortestPathTree;
