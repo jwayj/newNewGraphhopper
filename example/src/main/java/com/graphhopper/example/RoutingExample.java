@@ -37,6 +37,10 @@ import com.graphhopper.util.details.PathDetail;
 import com.graphhopper.util.shapes.GHPoint;
 
 
+
+
+
+
 public class RoutingExample {
     public static void main(String[] args) {
         String relDir = args.length == 1 ? args[0] : "";
@@ -253,6 +257,9 @@ public class RoutingExample {
         }
         return rsp.getBest();
     }
+
+
+
     
     
 
@@ -297,6 +304,7 @@ public class RoutingExample {
         
         return combinedPath;
     }
+
 
     static ResponsePath findPathAvoiding(GraphHopper hopper, GHPoint start, GHPoint end, PointList avoidPoints) {
         GHRequest request = new GHRequest()
