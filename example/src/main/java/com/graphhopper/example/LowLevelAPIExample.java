@@ -43,11 +43,12 @@ public class LowLevelAPIExample {
 
     public static void createAndSaveGraph() {
         {
-            BooleanEncodedValue accessEnc = VehicleAccess.create("car");
-            DecimalEncodedValue speedEnc = VehicleSpeed.create("car", 7, 2, false);
+            BooleanEncodedValue accessEnc = VehicleAccess.create("car"); //차기준으로 설정, 사람으로 바꿔야함함
+            DecimalEncodedValue speedEnc = VehicleSpeed.create("car", 7, 2, false);//속도 인코딩값 설정
             EncodingManager em = EncodingManager.start().add(accessEnc).add(speedEnc).build();
             BaseGraph graph = new BaseGraph.Builder(em).setDir(new RAMDirectory(graphLocation, true)).create();
             // Make a weighted edge between two nodes and set average speed to 50km/h
+            //두 노드 사이에 가중치있는 edge생성, 거리 설정하고 평균속도 설정
             EdgeIteratorState edge = graph.edge(0, 1).setDistance(1234).set(speedEnc, 50);
 
             // Set node coordinates and build location index
@@ -83,6 +84,7 @@ public class LowLevelAPIExample {
             Snap fromSnap = index.findClosest(15.15, 20.20, EdgeFilter.ALL_EDGES);
             Snap toSnap = index.findClosest(15.25, 20.21, EdgeFilter.ALL_EDGES);
             QueryGraph queryGraph = QueryGraph.create(graph, fromSnap, toSnap);
+            //가중치 설정, dijkstra 사용해서 경로 계산
             Weighting weighting = CustomModelParser.createWeighting(em, TurnCostProvider.NO_TURN_COST_PROVIDER,
                     new CustomModel().addToPriority(If("!" + accessEnc.getName(), MULTIPLY, "0")).addToSpeed(If("true", LIMIT, speedEnc.getName())));
             Path path = new Dijkstra(queryGraph, weighting, TraversalMode.NODE_BASED).calcPath(fromSnap.getClosestNode(), toSnap.getClosestNode());
@@ -94,7 +96,7 @@ public class LowLevelAPIExample {
         }
     }
 
-    public static void useContractionHierarchiesToMakeQueriesFaster() {
+    public static void useContractionHierarchiesToMakeQueriesFaster() {//쿼리 속도 빠르게 하는 코드드
         // Creating and saving the graph
         BooleanEncodedValue accessEnc = VehicleAccess.create("car");
         DecimalEncodedValue speedEnc = VehicleSpeed.create("car", 7, 2, false);

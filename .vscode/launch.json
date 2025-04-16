@@ -4,7 +4,20 @@
     // 자세한 내용을 보려면 https://go.microsoft.com/fwlink/?linkid=830387을(를) 방문하세요.
     "version": "0.2.0",
     "configurations": [
-
+        {
+            "type": "java",
+            "name": "RoutingCore",
+            "request": "launch",
+            "mainClass": "com.graphhopper.example.RoutingCore",
+            "projectName": "graphhopper-example"
+        },
+        {
+            "type": "java",
+            "name": "GpkgSlopeReader",
+            "request": "launch",
+            "mainClass": "com.graphhopper.example.GpkgSlopeReader",
+            "projectName": "graphhopper-example"
+        },
         {
             "type": "java",
             "name": "Current File",

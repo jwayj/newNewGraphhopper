@@ -21,7 +21,7 @@ public class LocationIndexExample {
         lowLevelLocationIndex();
     }
 
-    public static void graphhopperLocationIndex(String relDir) {
+    public static void graphhopperLocationIndex(String relDir) {//고수준 api 사용해서 인덱스,주어진 위도 경도와 가장 가까운 엣지 찾음
         GraphHopper hopper = new GraphHopper();
         hopper.setEncodedValuesString("car_access, car_average_speed");
         hopper.setProfiles(new Profile("car").setCustomModel(GHUtility.loadCustomModelFromJar("car.json")));
@@ -37,7 +37,7 @@ public class LocationIndexExample {
         assert edge.getName().equals("Avinguda Meritxell");
     }
 
-    public static void lowLevelLocationIndex() {
+    public static void lowLevelLocationIndex() {//저수준 api 사용해서 인덱스스
         // If you don't use the GraphHopper class you have to use the low level API:
         BaseGraph graph = new BaseGraph.Builder(4).create();
         graph.edge(0, 1).setKeyValues(Map.of("name", new KValue( "test edge")));

@@ -1,0 +1,84 @@
+[
+  {
+    "selectedEdges": [
+      {
+        "edge": 13
+      },
+      {
+        "edge": 14
+      }
+    ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 151
+      },
+      {
+        "edge": 150
+      },
+      {
+        "edge": 149
+      }
+    ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 81
+      },
+      {
+        "edge": 84
+      },
+      {
+        "edge": 83
+      },
+      {
+        "edge": 82
+      }
+    ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 81
+      },
+      {
+        "edge": 84
+      },
+      {
+        "edge": 83
+      },
+      {
+        "edge": 82
+      },
+      {
+        "edge": 80
+      },
+      {
+        "edge": 85
+      },
+      {
+        "edge": 86
+      },
+      {
+        "edge": 79
+      },
+      {
+        "edge": 78
+      },
+      {
+        "edge": 77
+      },
+      {
+        "edge": 76
+      },
+      {
+        "edge": 75
+      },
+      {
+        "edge": 74
+      }
+    ]
+  }
+]

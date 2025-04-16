@@ -1,0 +1,57 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+    
+        {
+            "type": "java",
+            "name": "Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "HeadingExample",
+            "request": "launch",
+            "mainClass": "com.graphhopper.example.HeadingExample",
+            "projectName": "graphhopper-example"
+        },
+        {
+            "type": "java",
+            "name": "IsochroneExample",
+            "request": "launch",
+            "mainClass": "com.graphhopper.example.IsochroneExample",
+            "projectName": "graphhopper-example"
+        },
+        {
+            "type": "java",
+            "name": "LocationIndexExample",
+            "request": "launch",
+            "mainClass": "com.graphhopper.example.LocationIndexExample",
+            "projectName": "graphhopper-example"
+        },
+        {
+            "type": "java",
+            "name": "LowLevelAPIExample",
+            "request": "launch",
+            "mainClass": "com.graphhopper.example.LowLevelAPIExample",
+            "projectName": "graphhopper-example"
+        },
+        {
+            "type": "java",
+            "name": "RoutingExample",
+            "request": "launch",
+            "mainClass": "com.graphhopper.example.RoutingExample",
+            "projectName": "graphhopper-example"
+        },
+        {
+            "type": "java",
+            "name": "RoutingExampleTC",
+            "request": "launch",
+            "mainClass": "com.graphhopper.example.RoutingExampleTC",
+            "projectName": "graphhopper-example"
+        }
+    ]
+}

@@ -17,6 +17,24 @@
  */
 package com.graphhopper.reader.osm;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import static java.util.Collections.emptyList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.LongToIntFunction;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.LongArrayList;
 import com.graphhopper.coll.GHLongLongHashMap;
@@ -40,28 +58,28 @@ import com.graphhopper.routing.util.countryrules.CountryRule;
 import com.graphhopper.routing.util.countryrules.CountryRuleFactory;
 import com.graphhopper.routing.util.parsers.RestrictionSetter;
 import com.graphhopper.search.KVStorage;
+import com.graphhopper.search.KVStorage.KValue;
 import com.graphhopper.storage.BaseGraph;
 import com.graphhopper.storage.IntsRef;
 import com.graphhopper.storage.NodeAccess;
 import com.graphhopper.storage.TurnCostStorage;
-import com.graphhopper.util.*;
+import com.graphhopper.util.DistanceCalc;
+import com.graphhopper.util.DistanceCalcEarth;
+import com.graphhopper.util.EdgeIteratorState;
+import com.graphhopper.util.FetchMode;
+import static com.graphhopper.util.GHUtility.OSM_WARNING_LOGGER;
+import com.graphhopper.util.Helper;
+import static com.graphhopper.util.Helper.nf;
+import static com.graphhopper.util.Parameters.Details.MOTORWAY_JUNCTION;
+import static com.graphhopper.util.Parameters.Details.STREET_DESTINATION;
+import static com.graphhopper.util.Parameters.Details.STREET_DESTINATION_REF;
+import static com.graphhopper.util.Parameters.Details.STREET_NAME;
+import static com.graphhopper.util.Parameters.Details.STREET_REF;
+import com.graphhopper.util.PointList;
+import com.graphhopper.util.RamerDouglasPeucker;
+import com.graphhopper.util.StopWatch;
 import com.graphhopper.util.shapes.GHPoint;
 import com.graphhopper.util.shapes.GHPoint3D;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
-import java.util.function.LongToIntFunction;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import static com.graphhopper.search.KVStorage.KValue;
-import static com.graphhopper.util.GHUtility.OSM_WARNING_LOGGER;
-import static com.graphhopper.util.Helper.nf;
-import static com.graphhopper.util.Parameters.Details.*;
-import static java.util.Collections.emptyList;
 
 /**
  * Parses an OSM file (xml, zipped xml or pbf) and creates a graph from it. The OSM file is actually read twice.
@@ -98,6 +116,15 @@ public class OSMReader {
     private GHLongLongHashMap osmWayIdToRelationFlagsMap = new GHLongLongHashMap(200, .5f);
     private WayToEdgesMap restrictedWaysToEdgesMap = new WayToEdgesMap();
     private List<ReaderRelation> restrictionRelations = new ArrayList<>();
+    
+    //Slope data를 읽기 위해서 필드와 Setter메서드 추가
+    /*private Map<Long,Double> externalSlopeData;
+
+    public OSMReader setExternalSlopeData(Map<Long, Double> externalSlopeData) {
+        this.externalSlopeData = externalSlopeData;
+        return this;
+    } */
+    
 
     public OSMReader(BaseGraph baseGraph, OSMParsers osmParsers, OSMReaderConfig config) {
         this.baseGraph = baseGraph;
@@ -327,7 +354,7 @@ public class OSMReader {
         // todo: in principle it should be possible to delay elevation calculation so we do not need to store
         // elevations during import (saves memory in pillar info during import). also note that we already need to
         // to do some kind of elevation processing (bridge+tunnel interpolation in GraphHopper class, maybe this can
-        // go together
+        // go together  
 
         if (pointList.is3D()) {
             // sample points along long edges
@@ -376,9 +403,18 @@ public class OSMReader {
         IntsRef relationFlags = getRelFlagsMap(way.getId());
         EdgeIteratorState edge = baseGraph.edge(fromIndex, toIndex).setDistance(distance);
         osmParsers.handleWayTags(edge.getEdge(), edgeIntAccess, way, relationFlags);
+        /* 
         Map<String, KValue> map = way.getTag("key_values", Collections.emptyMap());
         if (!map.isEmpty())
             edge.setKeyValues(map);
+        */
+
+        // 원래의 key_values를 가져오거나 새 HashMap으로 만듭니다.
+        Map<String, KValue> map = new HashMap<>(way.getTag("key_values", Collections.emptyMap()));
+        // 원래의 OSM way id를 "osm_way_id"라는 key로 추가합니다.
+        map.put("osm_way_id", new KValue(String.valueOf(way.getId())));
+        edge.setKeyValues(map);
+
 
         // If the entire way is just the first and last point, do not waste space storing an empty way geometry
         if (pointList.size() > 2) {

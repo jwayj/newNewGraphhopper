@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>라우팅 비교 + 피드백</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <style>
+        #map { width: 100%; height: 600px; }
+        #info, #legend { padding: 10px; background: #f8f8f8; margin-top: 10px; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 5px; }
+        .legend-color { width: 20px; height: 20px; margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="info"></div>
+    <div id="legend">
+        <h4>범례</h4>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: blue;"></div>
+            <span>routingWithDesiredDistance 메소드</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: red;"></div>
+            <span>routing 메소드</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: green;"></div>
+            <span>routingWithCircle 메소드</span>
+        </div>
+        <p>선택한 구간은 노란색으로 표시됩니다</p>
+    </div>
+
+    <div style="margin: 10px;">
+        <button id="feedbackBtn">🚀 사용자 피드백 보내기</button>
+    </div>
+
+    <script>
+        const map = L.map('map').setView([37.5665, 126.9780], 14);
+        const info = document.getElementById('info');
+        const selectedEdgeIds = new Set();
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        const startIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+            iconSize: [25, 41], iconAnchor: [12, 41], shadowSize: [41, 41]
+        });
+
+        const endIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            iconSize: [25, 41], iconAnchor: [12, 41], shadowSize: [41, 41]
+        });
+
+        function calculateDistance(geoJson) {
+            const coords = geoJson.features[0].geometry.coordinates;
+            let dist = 0;
+            for (let i = 1; i < coords.length; i++) {
+                dist += getDistance(coords[i-1][1], coords[i-1][0], coords[i][1], coords[i][0]);
+            }
+            return dist;
+        }
+
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371000;
+            const dLat = deg2rad(lat2 - lat1);
+            const dLon = deg2rad(lon2 - lon1);
+            const a = Math.sin(dLat/2)**2 + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+
+        function deg2rad(deg) { return deg * Math.PI / 180; }
+
+        function loadGeoJson(url, color, name) {
+            return fetch(url).then(res => res.json()).then(data => {
+                const coords = data.features[0].geometry.coordinates;
+                const latlngs = coords.map(c => [c[1], c[0]]);
+                const routeIdPrefix = name;
+
+                for (let i = 0; i < latlngs.length - 1; i++) {
+                    const segment = [latlngs[i], latlngs[i + 1]];
+                    const edgeId = `${routeIdPrefix}_${i}`;
+
+                    const line = L.polyline(segment, { color: color, weight: 5 }).addTo(map);
+
+                    line.on('click', () => {
+                        if (selectedEdgeIds.has(edgeId)) {
+                            line.setStyle({ color });
+                            selectedEdgeIds.delete(edgeId);
+                        } else {
+                            line.setStyle({ color: 'yellow' });
+                            selectedEdgeIds.add(edgeId);
+                        }
+                    });
+                }
+
+                const distance = calculateDistance(data);
+                info.innerHTML += `<p><strong>${name}</strong>: ${distance.toFixed(2)} 미터</p>`;
+
+                const start = latlngs[0], end = latlngs[latlngs.length - 1];
+                L.marker(start, { icon: startIcon }).addTo(map).bindPopup('출발지');
+                L.marker(end, { icon: endIcon }).addTo(map).bindPopup('도착지');
+
+                return L.polyline(latlngs);
+            });
+        }
+
+        Promise.all([
+            loadGeoJson('./route1.geojson', 'blue', 'routingWithDesiredDistance'),
+            loadGeoJson('./route2.geojson', 'red', 'routing'),
+            loadGeoJson('./route.geojson', 'green', 'routingWithCircle')
+        ]).then(routes => {
+            const bounds = routes[0].getBounds();
+            routes.slice(1).forEach(r => bounds.extend(r.getBounds()));
+            map.fitBounds(bounds);
+        });
+
+        document.getElementById("feedbackBtn").addEventListener("click", () => {
+            const selectedEdges = Array.from(selectedEdgeIds);
+            if (selectedEdges.length === 0) {
+                alert("❗ 구간을 선택하세요!");
+                return;
+            }
+
+            fetch("/feedback", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ selectedEdges: selectedEdges })
+            }).then(res => {
+                if (res.ok) {
+                    alert("✅ 피드백 전송 완료!");
+                } else {
+                    alert("❌ 피드백 전송 실패!");
+                }
+            }).catch(err => {
+                console.error("전송 오류:", err);
+            });
+        });
+    </script>
+</body>
+</html>

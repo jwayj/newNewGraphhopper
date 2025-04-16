@@ -19,8 +19,6 @@ import static com.graphhopper.util.Parameters.Curbsides.CURBSIDE_RIGHT;
 
 /**
  * Routing with turn costs. Also see {@link RoutingExample} for more details.
- * 회전 비용을 고려한 경로탐색 교차로에서의 특정 회전에 대한 추가적인 시간/비용 설정해서 현실적인 경로 탐색 가능하게 함
- * 도로 가장자리와 같은 요소도 고려
  */
 public class RoutingExampleTC {
     public static void main(String[] args) {
@@ -32,18 +30,15 @@ public class RoutingExampleTC {
     }
 
     public static void routeWithTurnCosts(GraphHopper hopper) {
-        //두 좌표간 경로 계산, car 프로필 설정
         GHRequest req = new GHRequest(42.50822, 1.533966, 42.506899, 1.525372).
                 setProfile("car");
-        //예상 거리와 예상 시간 값 검증
         route(hopper, req, 1038, 63_000);
     }
 
     public static void routeWithTurnCostsAndCurbsides(GraphHopper hopper) {
         GHRequest req = new GHRequest(42.50822, 1.533966, 42.506899, 1.525372).
-                setCurbsides(Arrays.asList(CURBSIDE_ANY, CURBSIDE_RIGHT)). //curbside(도로 가장자리) 설정
+                setCurbsides(Arrays.asList(CURBSIDE_ANY, CURBSIDE_RIGHT)).
                 setProfile("car");
-        //검증
         route(hopper, req, 1370, 88_000);
     }
 
@@ -54,13 +49,11 @@ public class RoutingExampleTC {
                 // will be ignored and those set for our profile will be used.
                 .putHint(Parameters.CH.DISABLE, true)
                 .setProfile("car");
-        //검증
         route(hopper, req.putHint(Parameters.Routing.U_TURN_COSTS, 10), 1370, 88_000);
         route(hopper, req.putHint(Parameters.Routing.U_TURN_COSTS, 100), 1635, 120_000);
         route(hopper, req.putHint(Parameters.Routing.U_TURN_COSTS, 200), 1635, 120_000);
     }
 
-    // 경로 요청 수행, 결과값 검증
     private static void route(GraphHopper hopper, GHRequest req, int expectedDistance, int expectedTime) {
         GHResponse rsp = hopper.route(req);
         // handle errors
@@ -69,7 +62,6 @@ public class RoutingExampleTC {
             // you can specify 'curbside=any' or Parameters.Routing.CURBSIDE_STRICTNESS="soft" to avoid an error
             throw new RuntimeException(rsp.getErrors().toString());
         ResponsePath path = rsp.getBest();
-        // 결과 시간,거리 값과 예상값 비교
         assert Math.abs(expectedDistance - path.getDistance()) < 1 : "unexpected distance : " + path.getDistance() + " vs. " + expectedDistance;
         assert Math.abs(expectedTime - path.getTime()) < 1000 : "unexpected time : " + path.getTime() + " vs. " + expectedTime;
     }

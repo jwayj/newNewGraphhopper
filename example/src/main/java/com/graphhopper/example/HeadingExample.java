@@ -1,18 +1,19 @@
 package com.graphhopper.example;
 
-import java.util.Arrays;
-
 import com.graphhopper.GHRequest;
 import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.config.CHProfile;
 import com.graphhopper.config.Profile;
-import static com.graphhopper.json.Statement.If;
-import static com.graphhopper.json.Statement.Op.LIMIT;
-import static com.graphhopper.json.Statement.Op.MULTIPLY;
 import com.graphhopper.util.CustomModel;
 import com.graphhopper.util.Parameters;
 import com.graphhopper.util.shapes.GHPoint;
+
+import java.util.Arrays;
+
+import static com.graphhopper.json.Statement.If;
+import static com.graphhopper.json.Statement.Op.LIMIT;
+import static com.graphhopper.json.Statement.Op.MULTIPLY;
 
 public class HeadingExample {
     public static void main(String[] args) {
@@ -45,7 +46,7 @@ public class HeadingExample {
     }
 
     static void without_heading(GraphHopper hopper) {
-        GHRequest request = new GHRequest(new GHPoint(42.567757, 1.598751), new GHPoint(42.567396, 1.597807)).
+        GHRequest request = new GHRequest(new GHPoint(42.566757, 1.597751), new GHPoint(42.567396, 1.597807)).
                 setProfile("car");
         GHResponse response = hopper.route(request);
         if (response.hasErrors())

@@ -7,3 +7,8 @@ profiles:
 index.max_region_search: 100
 index:
   pups: 200
+
+graph.elevation:
+  provider: srtm
+  srtm.dir: map-matching/files
+  use: true
