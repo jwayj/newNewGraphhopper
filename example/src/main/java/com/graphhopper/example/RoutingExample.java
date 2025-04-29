@@ -21,7 +21,6 @@ import com.graphhopper.GraphHopper;
 import com.graphhopper.GraphHopperConfig;
 import com.graphhopper.ResponsePath;
 import com.graphhopper.config.Profile;
-import com.graphhopper.json.Statement;
 import static com.graphhopper.json.Statement.If;
 import static com.graphhopper.json.Statement.Op.LIMIT;
 import static com.graphhopper.json.Statement.Op.MULTIPLY;
@@ -40,7 +39,7 @@ import com.graphhopper.util.shapes.GHPoint;
 public class RoutingExample {
 
     // 사용자 경사 선호: "LOW", "NORMAL", "HIGH" 중 하나를 문자열로 입력 (예: "NORMAL")
-    private static final String SLOPE_PREFERENCE = "NORMAL";
+    private static final String SLOPE_PREFERENCE = "HIGH";
 
     public static void main(String[] args) {
     // ✅ 1. 피드백 서버 시작
@@ -85,7 +84,7 @@ public class RoutingExample {
      System.out.println("====================================\n");
 
     // ✅ 4. GraphHopper 인스턴스 생성 (penalizedEdges 함께 전달)
-    double desiredDistance = 5000.0;
+    double desiredDistance = 4500;
     String relDir = System.getProperty("user.dir") + File.separator;
     GraphHopper hopper = createGraphHopperInstance(relDir + "seoul-non-military.osm.pbf", penalizedEdgeIds);
 

@@ -66,11 +66,10 @@
                     var coordinates = data.features[0].geometry.coordinates;
                     var startPoint = coordinates[0];
                     var endPoint = coordinates[coordinates.length - 1];
-                    
-                    
+
                     L.marker([startPoint[1], startPoint[0]], {icon: startIcon}).addTo(map).bindPopup('출발지');
                     L.marker([endPoint[1], endPoint[0]], {icon: endIcon}).addTo(map).bindPopup('도착지');
-                    
+
                     return route;
                 })
                 .catch(err => {

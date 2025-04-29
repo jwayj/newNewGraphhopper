@@ -80,5 +80,192 @@
         "edge": 74
       }
     ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 74
+      },
+      {
+        "edge": 73
+      },
+      {
+        "edge": 72
+      }
+    ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 149
+      },
+      {
+        "edge": 151
+      },
+      {
+        "edge": 150
+      }
+    ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 289
+      },
+      {
+        "edge": 288
+      },
+      {
+        "edge": 287
+      },
+      {
+        "edge": 284
+      }
+    ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 289
+      },
+      {
+        "edge": 288
+      },
+      {
+        "edge": 287
+      },
+      {
+        "edge": 284
+      }
+    ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 289
+      },
+      {
+        "edge": 288
+      },
+      {
+        "edge": 287
+      },
+      {
+        "edge": 284
+      }
+    ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 115
+      },
+      {
+        "edge": 119
+      },
+      {
+        "edge": 118
+      },
+      {
+        "edge": 117
+      },
+      {
+        "edge": 116
+      }
+    ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 2138
+      },
+      {
+        "edge": 2139
+      },
+      {
+        "edge": 2140
+      }
+    ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 2127
+      },
+      {
+        "edge": 2128
+      }
+    ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 2124
+      },
+      {
+        "edge": 2125
+      },
+      {
+        "edge": 2126
+      },
+      {
+        "edge": 2127
+      }
+    ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 112
+      },
+      {
+        "edge": 111
+      },
+      {
+        "edge": 110
+      },
+      {
+        "edge": 19
+      }
+    ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 2154
+      },
+      {
+        "edge": 2152
+      },
+      {
+        "edge": 2153
+      }
+    ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 2104
+      },
+      {
+        "edge": 21
+      },
+      {
+        "edge": 2102
+      },
+      {
+        "edge": 2103
+      },
+      {
+        "edge": 2101
+      }
+    ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 2100
+      }
+    ]
   }
 ]

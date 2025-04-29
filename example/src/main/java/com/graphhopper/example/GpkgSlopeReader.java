@@ -15,7 +15,8 @@ import org.opengis.feature.simple.SimpleFeature;
 
 public class GpkgSlopeReader {
     // 절대 경로를 사용하여 GeoPackage 파일 지정
-    private static final String DEFAULT_GPKG_FILE = "C:/Users/Owner/graphhopper/west2.gpkg";
+    private static final String DEFAULT_GPKG_FILE = "west2.gpkg";
+
 
     // osm_id(Long)와 aggregated_angle_angle(Double)을 저장하는 맵으로 변경
     private final Map<Long, Double> slopeMap;
