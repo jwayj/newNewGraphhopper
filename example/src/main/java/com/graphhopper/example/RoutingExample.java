@@ -84,7 +84,7 @@ public class RoutingExample {
      System.out.println("====================================\n");
 
     // ✅ 4. GraphHopper 인스턴스 생성 (penalizedEdges 함께 전달)
-    double desiredDistance = 4500;
+    double desiredDistance = 5500;
     String relDir = System.getProperty("user.dir") + File.separator;
     GraphHopper hopper = createGraphHopperInstance(relDir + "seoul-non-military.osm.pbf", penalizedEdgeIds);
 
@@ -121,7 +121,7 @@ public class RoutingExample {
             String geoJson1 = GeoJsonExporter1.toGeoJSON(path1);
             System.out.println("GeoJSON:\n" + geoJson1);
             try {
-                SaveGeoJson.saveToFile(geoJson1, "example/src/main/java/com/graphhopper/example/route1.geojson");
+                SaveGeoJson.saveToFile(geoJson1, "example/resources/route1.geojson");
                 System.out.println("GeoJSON1 saved to route1.geojson");
             } catch (Exception e) {
                 System.err.println("Error saving GeoJSON: " + e.getMessage());
@@ -143,7 +143,7 @@ public class RoutingExample {
             String geoJson2 = GeoJsonExporter1.toGeoJSON(path2);
             System.out.println("GeoJSON:\n" + geoJson2);
             try {
-                SaveGeoJson.saveToFile(geoJson2, "example/src/main/java/com/graphhopper/example/route2.geojson");
+                SaveGeoJson.saveToFile(geoJson2, "example/resources/route2.geojson");
                 System.out.println("📂 GeoJSON2 saved to route2.geojson");
             } catch (Exception e) {
                 System.err.println("❌ Error saving GeoJSON: " + e.getMessage());
@@ -183,7 +183,7 @@ public class RoutingExample {
                     System.out.println("GeoJSON:\n" + geoJson);
         
                     // 📌 GeoJSON 저장->경로 example파일로
-                    SaveGeoJson.saveToFile(geoJson, "example/src/main/java/com/graphhopper/example/route.geojson");
+                    SaveGeoJson.saveToFile(geoJson, "example/resources/route.geojson");
                      System.out.println("GeoJSON saved to route.geojson");
 
                     
