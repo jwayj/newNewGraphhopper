@@ -182,7 +182,7 @@ public class RoutingExample {
                     String geoJson = GeoJsonExporter2.toGeoJSON(diversePath, new PointList(), pathPoints);
                     System.out.println("GeoJSON:\n" + geoJson);
         
-                    // 📌 GeoJSON 저장
+                    // 📌 GeoJSON 저장->경로 example파일로
                     SaveGeoJson.saveToFile(geoJson, "example/src/main/java/com/graphhopper/example/route.geojson");
                      System.out.println("GeoJSON saved to route.geojson");
 
