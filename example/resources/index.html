@@ -8,90 +8,47 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <style>
         #map { width: 100%; height: 600px; }
-        #info, #legend { padding: 10px; background: #f8f8f8; margin-top: 10px; }
         .legend-item { display: flex; align-items: center; margin-bottom: 5px; }
         .legend-color { width: 20px; height: 20px; margin-right: 10px; }
-        /* 인풋 필드 스타일 */
         #input input[type="text"] {
-            width: 300px;
-            height: 30px;
-            font-size: 18px;
-            padding: 5px;
+            width: 300px; height: 30px; font-size: 18px; padding: 5px;
         }
-
-        /* 라디오 버튼 스타일 */
         #input input[type="radio"] {
-            transform: scale(1.5);
-            margin-right: 5px;
+            transform: scale(1.5); margin-right: 5px;
         }
-        /* 설명 텍스트 스타일 */
-        #input label {
+        #input label, #input legend {
             font-size: 25px;
         }
-        #input legend{
-            font-size: 25px;
-        }
-        #input input{
-            font-size: 25px;
-            height: 40px;
-        }
-        #button{
-            height: 50px;
+        #input input {
+            font-size: 25px; height: 40px;
         }
         .large-button {
-            width: 200px;
-            height: 60px;
-            font-size: 20px;
-            color: black;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .show {
-            width: 200px;
-            height: 60px;
-            color: #fff;              /* 텍스트 색상을 하얀색으로 */
-            background-color: #fff;   /* 배경 색상을 하얀색으로 */
-            border: none;
-        }
-        .leaflet-clickable {
-            cursor: pointer;
-            transition: stroke 0.3s ease;
-        }
-
-        .leaflet-selected {
-            stroke: yellow !important;
-            stroke-width: 7px !important;
+            width: 200px; height: 60px; font-size: 20px; border: none; border-radius: 5px; cursor: pointer;
         }
     </style>
 </head>
 <body>
+
+    <!-- Daum 주소 검색 -->
+    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+
+    
+
     <div id="input">
-        <!-- 출발지 입력 -->
-        <label for="start-point">출발지:</label>
+        <label for="start-address">출발지:</label>
         <input type="text" id="start-address" placeholder="주소">
-        <input type="button" onclick="openDaumPostcodeEmbed('start-address')" value="주소 검색"><br>
-        <div id="start-map" style="width:300px;height:300px;margin-top:10px;display:none"></div>
-        <br><br>
+        <input type="button" onclick="openDaumPostcodeEmbed('start-address')" value="주소 검색"><br><br>
 
-        <!-- 도착지 입력 -->
-        <label for="end-point">도착지:</label>
+        <label for="end-address">도착지:</label>
         <input type="text" id="end-address" placeholder="주소">
-        <input type="button" onclick="openDaumPostcodeEmbed('end-address')" value="주소 검색"><br>
-        <div id="end-map" style="width:300px;height:300px;margin-top:10px;display:none"></div>
-        <br>
-        <!-- 출발지와 같음 체크박스 추가 -->
+        <input type="button" onclick="openDaumPostcodeEmbed('end-address')" value="주소 검색"><br><br>
+
         <input type="checkbox" id="same-as-start">
-        <label for="same-as-start">출발지와 같음</label>
-        <p id="same-address-text" style="display: none;">출발지와 같음</p><br><br>
-        
+        <label for="same-as-start">출발지와 같음</label><br><br>
 
-        <!-- 거리 입력 -->
         <label for="distance">거리 (km):</label>
-        <input type="text" id="distance" name="distance" placeholder="거리를 입력하세요">
-        <br><br>
+        <input type="text" id="distance" placeholder="예: 5"><br><br>
 
-        <!-- 경사 선택 -->
         <fieldset>
             <legend>경사:</legend>
             <input type="radio" id="slope-low" name="slope" value="low">
@@ -101,313 +58,127 @@
             <input type="radio" id="slope-high" name="slope" value="high">
             <label for="slope-high">높음</label>
         </fieldset>
-        <br><br>
+        <br>
         <button class="large-button" onclick="sendData()">경로 탐색</button>
-        <br><br>
-        <button id="show" class ="show" onclick="showMap()">지도 보기</button>
     </div>
 
     <div id="postcode-layer" style="display:none;position:fixed;z-index:100;width:100%;height:100%;top:0;left:0;background:rgba(0,0,0,0.3);">
         <div id="postcode-embed" style="width:400px;height:500px;margin:40px auto;background:#fff;"></div>
     </div>
 
-    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
-    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=15b7dbfa6bd3ff727c0d2fb1d10bb2d5&libraries=services"></script>
+    <script>
+        let isGeocoderReady = false;
+    
+        document.addEventListener("DOMContentLoaded", () => {
+        const script = document.createElement("script");
+        script.src = "https://dapi.kakao.com/v2/maps/sdk.js?appkey=d1c16c3393f46b74308ba72d84d5f73e&libraries=services&autoload=false";
 
+        script.onload = () => {
+            console.log("📦 SDK 로드됨, kakao =", window.kakao);  // ✅ 이 줄로 kakao 객체 확인
 
-    <div id="container" hidden>
-        <div id="map"></div>
-        <div id="info"></div>
-        <div id="legend">
-            <h4>범례</h4>
-            </div>
-            <p>구간을 선택하면 노란색으로 표시됩니다</p>
-        </div>
-        <div style="margin: 10px;">
-            <button id="feedbackBtn">🚀 사용자 피드백 보내기</button>
-        </div>
-        <script>
-            function execDaumPostcode(addressId, mapId) {
-                new daum.Postcode({
-                    oncomplete: function(data) {
-                        var addr = data.address; // 최종 주소 변수
-    
-                        // 주소 정보를 해당 필드에 넣는다.
-                        document.getElementById(addressId).value = addr;
-    
-                        // Kakao 지도 설정
-                        var mapContainer = document.getElementById(mapId),
-                            mapOption = {
-                                center: new daum.maps.LatLng(37.537187, 127.005476),
-                                level: 5
-                            };
-    
-                        var map = new daum.maps.Map(mapContainer, mapOption);
-                        var geocoder = new daum.maps.services.Geocoder();
-                        var marker = new daum.maps.Marker({ map: map });
-    
-                        geocoder.addressSearch(addr, function(results, status) {
-                            if (status === daum.maps.services.Status.OK) {
-                                var result = results[0];
-                                var coords = new daum.maps.LatLng(result.y, result.x);
-                                mapContainer.style.display = "block";
-                                map.relayout();
-                                map.setCenter(coords);
-                                marker.setPosition(coords);
-                            }
-                        });
-                    }
-                }).open();
-            }
-    
-            function openDaumPostcodeEmbed(targetInputId) {
-                document.getElementById('postcode-layer').style.display = 'block';
-                new daum.Postcode({
-                    oncomplete: function(data) {
-                        document.getElementById(targetInputId).value = data.address;
-                        document.getElementById('postcode-layer').style.display = 'none';
-                        if (window.Android) {
-                            window.Android.setAddress(data.zonecode, data.address, data.buildingName);
-                        }
-                    },
-                    onclose: function(state) {
-                        document.getElementById('postcode-layer').style.display = 'none';
-                    }
-                }).embed(document.getElementById('postcode-embed'));
-            }
-    
-            function sendData() {
-                const startAddress = document.getElementById("start-address").value;
-                const endAddress = document.getElementById("end-address").value;
-                const distance = document.getElementById("distance").value;
-    
-                // 데이터를 JSON 형태로 서버에 전송
-                fetch('http://localhost:4567/submit', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        startAddress: startAddress,
-                        endAddress: endAddress,
-                        distance: distance
-                    })
-                }).then(response => {
-                    if (response.ok) {
-                        alert("데이터가 성공적으로 전송되었습니다!");
-                        showMap();  // 데이터를 전송한 후 지도 보이게 하기
-                    } else {
-                        alert("데이터 전송에 실패했습니다.");
-                    }
-                }).catch(error => {
-                    console.error("전송 오류:", error);
+            if (window.kakao && window.kakao.maps && window.kakao.maps.load) {
+                window.kakao.maps.load(() => {
+                    console.log("✅ Kakao Maps SDK 완전히 로드됨");
+                    window.geocoder = new kakao.maps.services.Geocoder();
+                    isGeocoderReady = true;
                 });
+            } else {
+                console.error("❌ kakao.maps.load가 없음");
             }
-    
-            function showMap() {
-                document.getElementById("container").hidden = false;
-                loadMap();  // 지도를 로드하는 함수
-            }
-            function is_checked() {
-            const checkbox = document.getElementById('same-as-start');
-            const is_checked = checkbox.checked;
-                return is_checked;
-            }
-            
-            
-    
-    
-            // 지도와 경로를 로드하는 함수
-            function loadMap() {
-                const map = L.map('map').setView([37.5665, 126.9780], 14);
-    
-                map.eachLayer(function(layer) {
-                    if (layer instanceof L.TileLayer) return;
-                    map.removeLayer(layer);
-                });
-    
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '© OpenStreetMap contributors'
-                }).addTo(map);
-    
-                const startIcon = L.icon({
-                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-                    iconSize: [25, 41], iconAnchor: [12, 41], shadowSize: [41, 41]
-                });
-    
-                const endIcon = L.icon({
-                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-                    iconSize: [25, 41], iconAnchor: [12, 41], shadowSize: [41, 41]
-                });
-    
-                // 체크박스 상태 확인하여 경로 로드
-                if (is_checked()) {
-                    // route2 (초록색 경로)만 로드
-                    loadRoute2(map, startIcon, endIcon);
-                } else {
-                    // route1 (파란색 경로)만 로드
-                    loadRoute1(map, startIcon, endIcon);
+        };
+
+        script.onerror = () => {
+            console.error("❌ Kakao Maps SDK 스크립트 로드 실패");
+        };
+
+        document.head.appendChild(script);
+    });
+
+        // 주소 검색창 열기
+        function openDaumPostcodeEmbed(targetInputId) {
+            document.getElementById('postcode-layer').style.display = 'block';
+            new daum.Postcode({
+                oncomplete: function(data) {
+                    document.getElementById(targetInputId).value = data.address;
+                    document.getElementById('postcode-layer').style.display = 'none';
+                },
+                onclose: function() {
+                    document.getElementById('postcode-layer').style.display = 'none';
                 }
-            }
-    
-            const selectedEdges = new Set(); // 선택된 엣지 ID 저장
-            const edgeMap = new Map();       // 엣지 ID와 해당 polyline 객체 매핑
-            // route1.geojson 로드
-            function loadRoute1(map, startIcon, endIcon) {
-        fetch('./route1.geojson')
-            .then(res => res.json())
-            .then(data => {
-                const coords = data.features[0].geometry.coordinates;
-                const latlngs = coords.map(c => [c[1], c[0]]);
-    
-                // 구간별 polyline 생성
-                for (let i = 0; i < latlngs.length - 1; i++) {
-                    const segment = [latlngs[i], latlngs[i + 1]];
-                    const edgeId = `route1_${i}`;
-                    const polyline = L.polyline(segment, { 
-                        color: 'blue', 
-                        weight: 5 
-                    }).addTo(map);
-    
-                    // 엣지 매핑 저장
-                    edgeMap.set(edgeId, polyline);
-    
-                    // 클릭 이벤트 추가
-                    polyline.on('click', function() {
-                        if (selectedEdges.has(edgeId)) {
-                            // 이미 선택된 경우: 원래 색상 복원
-                            polyline.setStyle({ color: 'blue' });
-                            selectedEdges.delete(edgeId);
-                        } else {
-                            // 선택되지 않은 경우: 노란색으로 변경
-                            polyline.setStyle({ color: 'yellow' });
-                            selectedEdges.add(edgeId);
-                        }
-                    });
-                }
-    
-                const start = latlngs[0], end = latlngs[latlngs.length - 1];
-                L.marker(start, { icon: startIcon }).addTo(map).bindPopup('출발지');
-                L.marker(end, { icon: endIcon }).addTo(map).bindPopup('도착지');
-                map.fitBounds(L.polyline(latlngs).getBounds());
-    
-                const distance = calculateDistance(data);
-                updateLegendWithDistance('routingWithDesiredDistance', distance);
-            });
-    }
-    
-            // route.geojson 로드 (route2)
-            function loadRoute2(map, startIcon, endIcon) {
-                fetch('./route.geojson')
-                    .then(res => res.json())
-                    .then(data => {
-                        const coords = data.features[0].geometry.coordinates;
-                        const latlngs = coords.map(c => [c[1], c[0]]);
-    
-                        // 구간별 polyline 생성
-                        for (let i = 0; i < latlngs.length - 1; i++) {
-                            const segment = [latlngs[i], latlngs[i + 1]];
-                            const edgeId = `route2_${i}`;
-                            const polyline = L.polyline(segment, { 
-                                color: 'green', 
-                                weight: 5 
-                            }).addTo(map);
-    
-                            // 엣지 매핑 저장
-                            edgeMap.set(edgeId, polyline);
-    
-                            // 클릭 이벤트 추가
-                            polyline.on('click', function() {
-                                if (selectedEdges.has(edgeId)) {
-                                    polyline.setStyle({ color: 'green' });
-                                    selectedEdges.delete(edgeId);
-                                } else {
-                                    polyline.setStyle({ color: 'yellow' });
-                                    selectedEdges.add(edgeId);
-                                }
-                            });
-                        }
-    
-                        const start = latlngs[0], end = latlngs[latlngs.length - 1];
-                        L.marker(start, { icon: startIcon }).addTo(map).bindPopup('출발지');
-                        L.marker(end, { icon: endIcon }).addTo(map).bindPopup('도착지');
-                        map.fitBounds(L.polyline(latlngs).getBounds());
-    
-                        const distance = calculateDistance(data);
-                        updateLegendWithDistance('routingWithCircle', distance);
-                    });
-            }
-            document.getElementById("feedbackBtn").addEventListener("click", () => {
-                const selectedEdgesArray = Array.from(selectedEdges);
-                if (selectedEdgesArray.length === 0) {
-                    alert("❗ 구간을 선택하세요!");
+            }).embed(document.getElementById('postcode-embed'));
+        }
+
+        // 주소 → 좌표 변환 함수
+        async function geocodeAddress(address) {
+            return new Promise((resolve, reject) => {
+                if (!window.geocoder) {
+                    reject("❌ geocoder 초기화되지 않음");
                     return;
                 }
-    
-                fetch("/feedback", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ selectedEdges: selectedEdgesArray })
-                }).then(res => {
-                    if (res.ok) {
-                        alert("✅ 피드백 전송 완료!");
+                window.geocoder.addressSearch(address, function(results, status) {
+                    if (status === kakao.maps.services.Status.OK) {
+                        const result = results[0];
+                        resolve({ lat: result.y, lon: result.x });
                     } else {
-                        alert("❌ 피드백 전송 실패!");
+                        reject("❌ 주소 변환 실패: " + address);
                     }
-                }).catch(err => {
-                    console.error("전송 오류:", err);
                 });
             });
-    
-            function updateLegendWithDistance(name, distance) {
-                const legend = document.getElementById('legend');
-                const legendItem = document.createElement('div');
-                legendItem.classList.add('legend-item');
-                legendItem.innerHTML = `
-                    <div class="legend-color" style="background-color: ${getColorForRoute(name)};"></div>
-                    <span>${name} (${distance.toFixed(2)} 미터)</span>
-                `;
-                legend.appendChild(legendItem);
-                legend.appendChild(infoText);
-            }
-    
-            function getColorForRoute(name) {
-                switch (name) {
-                    case 'routingWithDesiredDistance':
-                        return 'blue';
-                    case 'routing':
-                        return 'red';
-                    case 'routingWithCircle':
-                        return 'green';
-                    default:
-                        return 'gray';
-                }
-            }
-    
-            function calculateDistance(geoJson) {
-                const coords = geoJson.features[0].geometry.coordinates;
-                let dist = 0;
-                for (let i = 1; i < coords.length; i++) {
-                    dist += getDistance(coords[i-1][1], coords[i-1][0], coords[i][1], coords[i][0]);
-                }
-                return dist;
-            }
-    
-            function getDistance(lat1, lon1, lat2, lon2) {
-                const R = 6371000;
-                const dLat = deg2rad(lat2 - lat1);
-                const dLon = deg2rad(lon2 - lon1);
-                const a = Math.sin(dLat/2)**2 + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon/2)**2;
-                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            }
-    
-            function deg2rad(deg) { return deg * Math.PI / 180; }
-        </script>
+        }
 
-    </div>
+        
+        
+        async function sendData() {
+            if (!isGeocoderReady) {
+                alert("⏳ Kakao 지도 로딩 중입니다. 잠시만 기다려 주세요!");
+                return;
+            }
+            const startAddress = document.getElementById("start-address").value;
+            const endAddress = document.getElementById("end-address").value;
+            const distance = document.getElementById("distance").value;
+            const slope = document.querySelector('input[name="slope"]:checked')?.value;
 
-    
+            if (!startAddress || !distance || !slope) {
+                alert("❗ 출발지, 거리, 경사 모두 입력해주세요.");
+                return;
+            }
 
+            try {
+                const start = await geocodeAddress(startAddress);
+                const end = (document.getElementById("same-as-start").checked || !endAddress)
+                            ? start : await geocodeAddress(endAddress);
+
+                console.log("🟢 주소 변환 결과:");
+                console.log("출발지:", startAddress, "→", start.lat, start.lon);
+                console.log("도착지:", endAddress || "(출발지와 같음)", "→", end.lat, end.lon);
+                console.log("거리:", distance + " km");
+                console.log("경사:", slope);
+
+                // ✅ 서버로 데이터 전송 (모두 문자열)
+                const payload = {
+                    startLat: String(start.lat),
+                    startLon: String(start.lon),
+                    endLat: String(end.lat),
+                    endLon: String(end.lon),
+                    distance: String(distance),
+                    slope: slope
+                };
+
+                const response = await fetch("http://localhost:4567/submit", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                const text = await response.text();
+                alert("서버 응답: " + text);
+            } catch (error) {
+                console.error("❌ 주소 변환 오류:", error);
+                alert("❌ 주소 변환 실패!");
+            }
+        }
+
+
+    </script>
 </body>
 </html>
