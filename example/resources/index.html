@@ -134,11 +134,11 @@
             .then(res => {
                 if (!res.ok) throw new Error();
                 // 지도 화면으로 이동
-                window.location.href = 'maponly.html';
+                window.location.href = 'mapNstartbtn.html';
             })
             .catch(err => {
                 alert("데이터 전송에 실패했습니다.");
-                window.location.href = 'maponly.html';
+                window.location.href = 'mapNstartbtn.html';
                 console.error(err);
             });
         }
