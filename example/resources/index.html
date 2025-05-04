@@ -16,12 +16,63 @@
             color: black; border: none; border-radius: 5px; cursor: pointer;
         }
     </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
     <div id="input">
         <label for="start-address">출발지:</label>
         <input type="text" id="start-address" placeholder="주소">
-        <input type="button" onclick="openDaumPostcodeEmbed('start-address')" value="주소 검색"><br><br>
+        <input type="button" onclick="openDaumPostcodeEmbed('start-address')" value="주소 검색">
+        <button id="btnTest">현재 위치 입력</button>
+        <p id="status">위치를 찾지 못했습니다</p>
+
+        <script>
+            var lat, lon; // 전역 변수 선언
+            var options = {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
+            };
+            
+            function success(pos) {
+                var crd = pos.coords;
+                lat = crd.latitude;
+                lon = crd.longitude;
+            
+                // Kakao API로 좌표 → 주소 변환 요청
+                $.ajax({
+                    url: 'https://dapi.kakao.com/v2/local/geo/coord2address.json?x=' + lon + '&y=' + lat,
+                    type: 'GET',
+                    headers: {
+                        'Authorization': 'KakaoAK 54a03569d286668aec7ba4c3415a5374' // 실제 REST API 키로 대체
+                    },
+                    success: function(data) {
+                        if (data.documents && data.documents.length > 0) {
+                            var address = data.documents[0].address.address_name;
+                            $('#start-address').val(address); // input에 주소 입력
+                            $('#status').text('위치 확인 완료');
+                        } else {
+                            $('#status').text('주소를 찾지 못했습니다');
+                        }
+                    },
+                    error: function(e) {
+                        $('#status').text('주소 변환 실패');
+                        console.log(e);
+                    }
+                });
+            }
+            
+            function error(err) {
+                $('#status').text('위치 찾기 실패');
+                console.warn('ERROR(' + err.code + '): ' + err.message);
+            }
+            
+            $("#btnTest").click(function() {
+                $('#status').text('위치 확인 중...');
+                navigator.geolocation.getCurrentPosition(success, error, options);
+            });
+            </script>
+            
 
         <label for="end-address">도착지:</label>
         <input type="text" id="end-address" placeholder="주소">
