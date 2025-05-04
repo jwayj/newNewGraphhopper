@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지도 화면</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map {
+            width: 100%;
+            height: 600px;
+        }
+
+        #info,
+        /*
+        #legend {
+            padding: 10px;
+            background: #f8f8f8;
+            margin-top: 10px;
+        }
+        */
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+        }
+
+        #startRunBtn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            font-size: 20px;
+            background-color: #7BCFFA;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        #feedbackBtn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            font-size: 20px;
+            background-color: #7BCFFA;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        
+    </style>
+</head>
+
+<body onload="loadMap()">
+    <div id="map"></div>
+    <div id="info"></div>
+    <div id="legend">
+        <p>구간을 선택하면 노란색으로 표시됩니다</p>
+    </div>
+    <button id="feedbackBtn">🚀 사용자 피드백 보내기</button>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        const selectedEdges = new Set();
+        const edgeMap = new Map();
+
+        function loadMap() {
+            const map = L.map('map').setView([37.5665, 126.9780], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19, attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            loadRoute1(map);
+        }
+
+        function loadRoute1(map) {
+            fetch('./route1.geojson')
+                .then(res => res.json())
+                .then(data => {
+                    const coords = data.features[0].geometry.coordinates;
+                    const latlngs = coords.map(c => [c[1], c[0]]);
+
+                    latlngs.forEach((_, i) => {
+                        if (i === latlngs.length - 1) return;
+                        const edgeId = `route1_${i}`;
+                        const segment = [latlngs[i], latlngs[i + 1]];
+                        const polyline = L.polyline(segment, { color: 'blue', weight: 5 }).addTo(map);
+                        edgeMap.set(edgeId, polyline);
+                        polyline.on('click', () => {
+                            if (selectedEdges.has(edgeId)) {
+                                polyline.setStyle({ color: 'blue' });
+                                selectedEdges.delete(edgeId);
+                            } else {
+                                polyline.setStyle({ color: 'yellow' });
+                                selectedEdges.add(edgeId);
+                            }
+                        });
+                    });
+
+                    L.marker(latlngs[0], { icon: createIcon('green') }).addTo(map).bindPopup('출발지');
+                    L.marker(latlngs.slice(-1)[0], { icon: createIcon('red') }).addTo(map).bindPopup('도착지');
+                    map.fitBounds(L.polyline(latlngs).getBounds());
+
+                    const dist = calculateDistance(data);
+                    updateLegendWithDistance('routingWithDesiredDistance', dist);
+                });
+        }
+
+        function createIcon(color) {
+            return L.icon({
+                iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
+                iconSize: [25, 41], iconAnchor: [12, 41], shadowSize: [41, 41]
+            });
+        }
+
+        function calculateDistance(geoJson) {
+            const coords = geoJson.features[0].geometry.coordinates;
+            let d = 0;
+            for (let i = 1; i < coords.length; i++) {
+                d += getDistance(coords[i - 1][1], coords[i - 1][0], coords[i][1], coords[i][0]);
+            }
+            return d;
+        }
+        function getDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371000;
+            const dLat = deg2rad(lat2 - lat1), dLon = deg2rad(lon2 - lon1);
+            const a = Math.sin(dLat / 2) ** 2 +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+                Math.sin(dLon / 2) ** 2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+        function deg2rad(deg) { return deg * Math.PI / 180; }
+
+        function updateLegendWithDistance(name, distance) {
+            const legend = document.getElementById('legend');
+            const item = document.createElement('div');
+            item.className = 'legend-item';
+            item.innerHTML = `
+                <div class="legend-color" style="background:${getColorForRoute(name)};"></div>
+                <span>${name} (${distance.toFixed(2)} m)</span>
+            `;
+            legend.appendChild(item);
+        }
+        function getColorForRoute(name) {
+            if (name === 'routingWithDesiredDistance') return 'blue';
+            if (name === 'routingWithCircle') return 'green';
+            return 'gray';
+        }
+
+        // 러닝 시작 버튼 핸들러
+
+        function startRunning() {
+            if (window.AndroidNative && window.AndroidNative.startNativeRun) {
+                window.AndroidNative.startNativeRun();
+            } else {
+            alert('네이티브 인터페이스를 찾을 수 없습니다.');
+            }
+        }
+
+        
+
+   
+// 피드백 전송
+document.getElementById("feedbackBtn").addEventListener("click", () => {
+    const arr = Array.from(selectedEdges);
+    if (!arr.length) return alert("❗ 구간을 선택하세요!");
+
+    fetch('/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selectedEdges: arr })
+    })
+    .then(res => {
+        if (res.ok) {
+            alert("✅ 피드백 전송 완료!");
+            // 네이티브로 메인 화면 복귀 호출
+            if (window.AndroidNative && window.AndroidNative.returnToMain) {
+                window.AndroidNative.returnToMain();
+            }
+        } else {
+            alert("❌ 전송 실패");
+        }
+    })
+    .catch(err => {
+        alert("⚠️ 네트워크 오류가 발생했습니다.");
+    });
+});
+
+
+    </script>
+</body>
+
+</html>
