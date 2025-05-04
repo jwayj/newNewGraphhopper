@@ -7,9 +7,15 @@
     <title>지도 화면</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
+          html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+        }
         #map {
             width: 100%;
-            height: 600px;
+            height: 80%;
         }
 
         #info,
@@ -34,17 +40,23 @@
 
         #startRunBtn {
             display: block;
-            width: 100%;
+            width: 95%;
             padding: 15px;
-            font-size: 20px;
+            font-size: 30px;
             background-color: #7BCFFA;
+            font-family: 'GmarketSans', sans-serif;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            margin: 10px 0;
+            margin: 10px auto;
+        }
+        .leaflet-tile-pane img {
+            filter: hue-rotate(15deg);
         }
     </style>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/ungveloper/web-fonts/GmarketSans/font-face.css" />
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/ungveloper/web-fonts/GmarketSans/font-family.css" />
 </head>
 
 <body onload="loadMap()">
@@ -63,7 +75,6 @@
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19, attribution: '© OpenStreetMap contributors'
             }).addTo(map);
-
             loadRoute1(map);
         }
 
