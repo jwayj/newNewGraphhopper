@@ -71,6 +71,39 @@
                 maxZoom: 19, attribution: '© OpenStreetMap contributors'
             }).addTo(map);
 
+            // 실시간 위치 추적 초기화
+            let yellowMarker = null;
+
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition( // watchPosition으로 변경[2]
+                    position => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        
+                        // 기존 마커 제거[2]
+                        if (yellowMarker) map.removeLayer(yellowMarker);
+
+                        // 새 마커 생성
+                        yellowMarker = L.circleMarker([lat, lng], {
+                            radius: 10,
+                            color: 'gold',
+                            fillColor: 'yellow',
+                            fillOpacity: 1
+                        }).addTo(map).bindPopup(`현위치 (정확도: ${position.coords.accuracy.toFixed(1)}m)`);
+
+                        console.log("위치 정확도:", position.coords.accuracy + "m"); // 정확도 로깅[1]
+                    },
+                    error => alert('위치 정보 오류: ' + error.message),
+                    { 
+                        enableHighAccuracy: true, // 고정밀 모드 활성화[1]
+                        maximumAge: 0, 
+                        timeout: 10000 
+                    }
+                );
+            } else {
+                alert('이 브라우저는 위치 정보를 지원하지 않습니다.');
+            }
+
             loadRoute1(map);
         }
 
