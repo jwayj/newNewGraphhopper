@@ -87,5 +87,23 @@
             <artifactId>gt-cql</artifactId>
             <version>25.2</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-firestore</artifactId>
+            <version>3.16.0</version>
+        </dependency>
+          <!-- 구글 Auth 라이브러리 (GoogleCredentials 클래스를 포함) -->
+        <dependency>
+            <groupId>com.google.auth</groupId>
+            <artifactId>google-auth-library-oauth2-http</artifactId>
+            <version>1.17.0</version>
+        </dependency>
+
     </dependencies>
 </project>

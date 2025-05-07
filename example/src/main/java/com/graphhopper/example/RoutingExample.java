@@ -1,7 +1,9 @@
 package com.graphhopper.example;
     
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
+import java.io.IOException;
 import java.io.Reader;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -12,7 +14,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
+import com.google.api.core.ApiFuture;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.Firestore;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+import com.google.firebase.cloud.FirestoreClient;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.graphhopper.GHRequest;
@@ -35,13 +45,25 @@ import com.graphhopper.util.PointList;
 import com.graphhopper.util.details.PathDetail;
 import com.graphhopper.util.shapes.GHPoint;
 
-
 public class RoutingExample {
 
     // 사용자 경사 선호: "LOW", "NORMAL", "HIGH" 중 하나를 문자열로 입력 (예: "NORMAL")
     private static final String SLOPE_PREFERENCE = "HIGH";
 
+    
     public static void main(String[] args) {
+    
+    try {
+        FileInputStream serviceAccount = new FileInputStream("backend/runpt-aaae1-firebase-adminsdk-fbsvc-620de08279.json");
+        FirebaseOptions options = FirebaseOptions.builder()
+            .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+            .build();
+        FirebaseApp.initializeApp(options);
+    } catch (IOException e) {
+        e.printStackTrace();
+        return;
+    } 
+
     // ✅ 1. 피드백 서버 시작
     FeedbackServer.start();
 
@@ -123,6 +145,25 @@ public class RoutingExample {
             try {
                 SaveGeoJson.saveToFile(geoJson1, "example/resources/route1.geojson");
                 System.out.println("GeoJSON1 saved to route1.geojson");
+
+                // Firestore 인스턴스 가져오기
+                Firestore db = FirestoreClient.getFirestore();
+
+                // 저장할 맵 구성
+                Map<String,Object> doc = new HashMap<>();
+                doc.put("content", geoJson1);
+
+                // ① add(doc) 한 번만 호출해서 Future 얻기
+                ApiFuture<DocumentReference> future = db.collection("geojson").add(doc);
+
+                try {
+                // ② 결과 대기 및 로그 출력
+                    DocumentReference ref = future.get();
+                    System.out.println("Uploaded to Firestore geojson collection, doc ID: " + ref.getId());
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                }
+               
             } catch (Exception e) {
                 System.err.println("Error saving GeoJSON: " + e.getMessage());
             }
