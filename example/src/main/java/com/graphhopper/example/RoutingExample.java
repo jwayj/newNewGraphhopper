@@ -6,6 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -15,6 +16,12 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 
 import com.google.api.core.ApiFuture;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -54,13 +61,15 @@ public class RoutingExample {
     public static void main(String[] args) {
     
     try {
-        FileInputStream serviceAccount = new FileInputStream("backend/runpt-aaae1-firebase-adminsdk-fbsvc-620de08279.json");
+        FileInputStream serviceAccount = new FileInputStream("backend/runpt-aaae1-firebase-adminsdk-fbsvc-24d537642e.json");
         FirebaseOptions options = FirebaseOptions.builder()
             .setCredentials(GoogleCredentials.fromStream(serviceAccount))
             .build();
         FirebaseApp.initializeApp(options);
+        System.out.println("✅ Firebase 초기화 성공");
     } catch (IOException e) {
         e.printStackTrace();
+        System.err.println("❌ Firebase 초기화 실패");
         return;
     } 
 
@@ -152,9 +161,27 @@ public class RoutingExample {
                 // 저장할 맵 구성
                 Map<String,Object> doc = new HashMap<>();
                 doc.put("content", geoJson1);
-
+                String geoJsonId="";
                 // ① add(doc) 한 번만 호출해서 Future 얻기
                 ApiFuture<DocumentReference> future = db.collection("geojson").add(doc);
+                try {
+                    DocumentReference ref = future.get();
+                    System.out.println("✅ Firestore 저장 성공, 문서 ID: " + ref.getId());
+                    geoJsonId=ref.getId();
+                } catch (InterruptedException | ExecutionException e) {
+                    System.err.println("❌ Firestore 저장 실패");
+                    e.printStackTrace();
+                }
+
+                // ① 메타 JSON 객체 생성
+                JSONObject meta = new JSONObject();
+                meta.put("geoJsonId", geoJsonId);
+
+                // ② 웹 서버가 읽는 경로에 덮어쓰기
+                Path metaPath = Path.of("example/resources/route_meta.json");
+                    Files.write(metaPath,
+                    meta.toString(2).getBytes(StandardCharsets.UTF_8));
+                System.out.println("▶ route_meta.json 업데이트 완료: " + geoJsonId);
 
                 try {
                 // ② 결과 대기 및 로그 출력
@@ -266,6 +293,13 @@ public class RoutingExample {
         }
     
         
+    }
+
+    private static JSONObject buildResponseJson(ResponsePath path, String geoJsonId) throws JSONException {
+        JSONObject out = new JSONObject();
+        // Firestore 문서 ID
+        out.put("geoJsonId", geoJsonId);
+        return out;
     }
 
     public static ResponsePath routingWithDesiredDistance(GraphHopper hopper, double desiredDistance, GHPoint start, GHPoint end,Weighting customWeighting) {

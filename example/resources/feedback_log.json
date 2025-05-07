@@ -983,5 +983,22 @@
         "edge": 152
       }
     ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 168
+      }
+    ]
+  },
+  {
+    "selectedEdges": [
+      {
+        "edge": 188
+      },
+      {
+        "edge": 187
+      }
+    ]
   }
 ]

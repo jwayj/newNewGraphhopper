@@ -87,7 +87,6 @@
             <artifactId>gt-cql</artifactId>
             <version>25.2</version>
         </dependency>
-
         <dependency>
             <groupId>com.google.firebase</groupId>
             <artifactId>firebase-admin</artifactId>

@@ -7,12 +7,14 @@
     <title>지도 화면</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-          html, body {
+        html,
+        body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
         }
+
         #map {
             width: 100%;
             height: 80%;
@@ -51,12 +53,15 @@
             cursor: pointer;
             margin: 10px auto;
         }
+
         .leaflet-tile-pane img {
             filter: hue-rotate(15deg);
         }
     </style>
-    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/ungveloper/web-fonts/GmarketSans/font-face.css" />
-    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/ungveloper/web-fonts/GmarketSans/font-family.css" />
+    <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/ungveloper/web-fonts/GmarketSans/font-face.css" />
+    <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/ungveloper/web-fonts/GmarketSans/font-family.css" />
 </head>
 
 <body onload="loadMap()">
@@ -66,6 +71,9 @@
     <div id="info"></div>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <!--firebase-->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script>
         const selectedEdges = new Set();
         const edgeMap = new Map();
@@ -154,6 +162,20 @@
             if (name === 'routingWithCircle') return 'green';
             return 'gray';
         }
+
+        fetch('route_meta.json')
+            .then(r => r.json())
+            .then(meta => {
+                const id = meta.geoJsonId;
+                console.log('받은 geoJsonId:', id);
+                if (window.AndroidBridge && typeof AndroidBridge.setGeoJsonId === 'function') {
+                    AndroidBridge.setGeoJsonId(id);
+                    console.log('geoJson 수신 성공');
+                } else {
+                    console.warn('⚠️ AndroidBridge 미등록—WebView에서 테스트하세요.');
+                }
+            })
+            .catch(err => console.error('메타파일 로드 실패:', err));
 
         function startRunning() {
             if (window.AndroidNative && window.AndroidNative.startNativeRun) {
