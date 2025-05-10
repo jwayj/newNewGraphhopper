@@ -81,7 +81,7 @@
         <input type="checkbox" id="same-as-start">
         <label for="same-as-start">출발지와 같음</label><br><br>
 
-        <label for="distance">거리 (km):</label>
+        <label for="distance">거리 (m):</label>
         <input type="text" id="distance" placeholder="거리를 입력하세요"><br><br>
 
         <fieldset>
@@ -201,7 +201,9 @@
             // window.location.href = 'mapNstartbtn.html';
             //이거 오류나서 임시로 새창으로 열기로 바꿈
             window.open('mapNstartbtn.html', '_blank');
-        })
+        }
+    
+    )
         .catch(err => {
             alert("데이터 전송에 실패했습니다.");
             console.error("fetch 에러:", err);

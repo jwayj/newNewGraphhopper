@@ -549,7 +549,15 @@ public class RoutingExample {
 
     static ResponsePath findDiverseOptimalPath(GraphHopper hopper, GHPoint startPoint, double desiredDistance,
     List<Integer> avoidEdges, PointList avoidPoints,
-    Set<Integer> penalizedEdgeIds, Weighting customWeighting) {
+    Set<Integer> penalizedEdgeIds, Weighting customWeighting, int attempt) {
+
+    final int MAX_ATTEMPTS = 10;
+
+    if (attempt > MAX_ATTEMPTS) {
+        System.out.println("🚫 최대 시도 횟수 초과(" + MAX_ATTEMPTS + "). 기본 경로를 반환합니다.");
+        //return findPath(hopper, startPoint, startPoint, "foot", customWeighting);
+        return null;
+    }
 
     int numWaypoints = 3;
     double minDistance = desiredDistance * 0.15;
@@ -570,12 +578,9 @@ public class RoutingExample {
     for (int i = 0; i < waypoints.size(); i++) {
         GHPoint waypoint = new GHPoint(waypoints.getLat(i), waypoints.getLon(i));
 
-        // ✅ 회피용 CustomModel 생성
         CustomModel customModel = new CustomModel();
-        // for (Integer edgeId : avoidEdges) {
-            // edge_id가 해당하는 곳의 우선순위를 낮춤
+        // for (Integer edgeId : avoidEdges)
         //     customModel.addToPriority(If("edge_id == " + edgeId, MULTIPLY, "0.1"));
-        // }
 
         GHRequest req = new GHRequest(previousPoint, waypoint)
             .setProfile("foot")
@@ -592,25 +597,12 @@ public class RoutingExample {
         fullPath = (fullPath == null) ? segment : combinePaths(fullPath, segment);
         totalDistance += segment.getDistance();
 
-        // ✅ 지나온 Edge 기록
-        // segment.getPathDetails().getOrDefault("edge_id", new ArrayList<>())
-        //     .forEach(detail -> avoidEdges.add((Integer) detail.getValue()));
-
         avoidPoints.add(waypoint.lat, waypoint.lon);
         previousPoint = waypoint;
     }
 
-    // ✅ 돌아오는 경로에도 회피 적용
-    // CustomModel customModel = new CustomModel();
-    // for (Integer edgeId : avoidEdges)
-    // customModel.addToPriority(If("edge_id == " + edgeId, MULTIPLY, "0.1"));
-
-    // for (Integer edgeId : penalizedEdgeIds)
-    // customModel.addToPriority(If("edge_id == " + edgeId, MULTIPLY, "0.1"));
-
     GHRequest returnReq = new GHRequest(previousPoint, startPoint)
         .setProfile("foot")
-        // .setCustomModel(customModel)
         .putHint("ch.disable", true);
 
     GHResponse returnRsp = hopper.route(returnReq);
@@ -620,14 +612,18 @@ public class RoutingExample {
         totalDistance += returnSegment.getDistance();
     }
 
-    // ✅ 거리 체크
+    // 거리 확인 후 재시도
     if (totalDistance < lowerBound || totalDistance > upperBound) {
-        System.out.println("❌ 경로 거리 초과 또는 부족. 다시 탐색...");
-        return findDiverseOptimalPath(hopper, startPoint, desiredDistance, avoidEdges, avoidPoints, penalizedEdgeIds,customWeighting);
+        System.out.println("❌ 경로 거리 초과 또는 부족 (거리: " + totalDistance + " m). 다시 탐색 중... (시도 " + attempt + ")");
+        return findDiverseOptimalPath(hopper, startPoint, desiredDistance, avoidEdges, avoidPoints, penalizedEdgeIds, customWeighting, attempt + 1);
     }
+
+    // ✅ 정상 종료일 경우 여기에 도달함
+    System.out.println("✅ distance를 고려한 경로를 찾았습니다. 최종 거리: " + totalDistance + " m");
 
     return fullPath;
 }
+
 
     static ResponsePath findAlternativeReturnPath(GraphHopper hopper, GHPoint start, GHPoint end, List<Integer> avoidEdges, PointList avoidPoints) {
         GHRequest request = new GHRequest()
@@ -653,6 +649,8 @@ public class RoutingExample {
     }
 
     static ResponsePath findPathWithWaypoints(GraphHopper hopper, GHPoint start, PointList waypoints) {
+        
+        
         CustomModel model = new CustomModel();
         // for (Integer edgeId : penalizedEdgeIds) {
         //     model.addToPriority(If("edge_id == " + edgeId, MULTIPLY, "0.1"));

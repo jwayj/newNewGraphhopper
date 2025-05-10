@@ -69,7 +69,7 @@ public class FeedbackServer {
                 PointList avoidPoints = new PointList();
                 ResponsePath diversePath = RoutingExample.findDiverseOptimalPath(
                     RoutingExample.hopper, start, distance, avoidEdges, avoidPoints,
-                    new HashSet<>(), RoutingExample.customWeighting
+                    new HashSet<>(), RoutingExample.customWeighting, 1
                 );
 
                 if (diversePath != null) {
