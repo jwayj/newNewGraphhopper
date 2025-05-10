@@ -7,8 +7,8 @@ import java.util.Map;
 
 public class CustomSlopeWeighting implements Weighting {
 
-    private final Weighting baseWeighting;
-    private final CustomSlopeEncodedValue slopeEV; // CustomSlopeEncodedValue에는 computePenalty(Long osmId) 메서드가 필요
+    public static Weighting baseWeighting;
+    public static CustomSlopeEncodedValue slopeEV; // CustomSlopeEncodedValue에는 computePenalty(Long osmId) 메서드가 필요
 
     public CustomSlopeWeighting(Weighting baseWeighting, CustomSlopeEncodedValue slopeEV) {
         this.baseWeighting = baseWeighting;

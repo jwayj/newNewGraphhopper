@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
+import java.util.Objects;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -56,8 +56,18 @@ public class RoutingExample {
 
     // 사용자 경사 선호: "LOW", "NORMAL", "HIGH" 중 하나를 문자열로 입력 (예: "NORMAL")
     private static final String SLOPE_PREFERENCE = "HIGH";
+    public static GraphHopper hopper;
+    public static RoutingExample routingExample;
+    public static CustomSlopeWeighting customWeighting;
 
-    
+    public static double startLat;
+    public static double startLon;
+    public static double endLat;
+    public static double endLon;
+    public static boolean same;
+    public static String slope;
+    public static double distance;
+
     public static void main(String[] args) {
     
     try {
@@ -74,7 +84,6 @@ public class RoutingExample {
     } 
 
     // ✅ 1. 피드백 서버 시작
-    FeedbackServer.start();
 
     // ✅ 2. 피드백 파일 로드 (새 JSON 구조 대응)
     Set<Integer> penalizedEdgeIds = new HashSet<>();
@@ -117,7 +126,8 @@ public class RoutingExample {
     // ✅ 4. GraphHopper 인스턴스 생성 (penalizedEdges 함께 전달)
     double desiredDistance = 5500;
     String relDir = System.getProperty("user.dir") + File.separator;
-    GraphHopper hopper = createGraphHopperInstance(relDir + "seoul-non-military.osm.pbf", penalizedEdgeIds);
+    // 이걸로 덮어쓰기
+    RoutingExample.hopper = createGraphHopperInstance(relDir + "seoul-non-military.osm.pbf");
 
     // 최신 방식: 프로필("foot")을 통해 기본 Weighting 생성
         Profile footProfile = hopper.getProfile("foot");
@@ -132,165 +142,132 @@ public class RoutingExample {
         CustomSlopeEncodedValue slopeEV = new CustomSlopeEncodedValue("custom_slope_penalty", slopeData, pref);
 
         // 기본 Weighting과 slopeEV를 사용하여 CustomSlopeWeighting 생성
-        CustomSlopeWeighting customWeighting = new CustomSlopeWeighting(baseWeighting, slopeEV);
+        RoutingExample.customWeighting = new CustomSlopeWeighting(baseWeighting, slopeEV);
 
-    // ✅ 5. 경로 계산 요청
-    GHPoint start = new GHPoint(37.566535, 126.977969);
-    GHPoint end = new GHPoint(37.5581, 126.9458);
+        //서버 시작 위치 변경
+        FeedbackServer.start();
 
-    GHRequest request = new GHRequest(start, end).setProfile("foot");
-    ResponsePath path = hopper.route(request).getBest();
-
-    System.out.println("🚶 경로 거리: " + path.getDistance() + "m");
+        // //✅ 5. 경로 계산 요청 -> FeedbackServer에서 실행행
+        // GHPoint start = new GHPoint(startLat, startLon);
+        // GHPoint end = new GHPoint(endLat, endLon);
 
 
+        // GHRequest request = new GHRequest(start, end).setProfile("foot");
+        // ResponsePath path = hopper.route(request).getBest();
 
-        ResponsePath path1 = routingWithDesiredDistance(hopper, desiredDistance, start, end, customWeighting);
-        if (path1 != null) {
-            System.out.println("경로 거리: " + path1.getDistance() + " 미터");
+        // System.out.println("🚶 경로 거리: " + path.getDistance() + "m");
+
+
+
+        //     ResponsePath path1 = routingWithDesiredDistance(hopper, desiredDistance, start, end, customWeighting);
+        //     if (path1 != null) {
+        //         System.out.println("경로 거리: " + path1.getDistance() + " 미터");
+                
+        //         String geoJson1 = GeoJsonExporter1.toGeoJSON(path1);
+        //         System.out.println("GeoJSON:\n" + geoJson1);
+        //         try {
+        //             SaveGeoJson.saveToFile(geoJson1, "example/resources/route1.geojson");
+        //             System.out.println("GeoJSON1 saved to route1.geojson");
+        //         } catch (Exception e) {
+        //             System.err.println("Error saving GeoJSON: " + e.getMessage());
+        //         }
+        //     } else {
+        //         System.out.println("원하는 거리의 경로를 찾을 수 없습니다.(RoutingWithDesiredDistance)");
+        //     }
+
+        //     // 🚀 랜덤 경유지 생성 (500m ~ 1500m 범위 내 3개)
+        //     PointList randomWaypoints = generateRandomWaypoints(hopper, start, 3, 500, 1500);
+        //     System.out.println("🔍 route()에서 강제 삽입된 랜덤 경유지: " + randomWaypoints);
+
+        //     // 🚀 랜덤 경유지를 사용하여 경로 탐색
+        //     ResponsePath path2 = findPathWithWaypoints(hopper, start, randomWaypoints);
+
+        //     if (path2 != null) {
+        //         System.out.println("✅ 새로운 경로 거리: " + path2.getDistance() + " 미터");
+
+        //         String geoJson2 = GeoJsonExporter1.toGeoJSON(path2);
+        //         System.out.println("GeoJSON:\n" + geoJson2);
+        //         try {
+        //             SaveGeoJson.saveToFile(geoJson2, "example/resources/route2.geojson");
+        //             System.out.println("📂 GeoJSON2 saved to route2.geojson");
+        //         } catch (Exception e) {
+        //             System.err.println("❌ Error saving GeoJSON: " + e.getMessage());
+        //         }
+        //     } else {
+        //         System.out.println("❌ 경로를 찾을 수 없습니다.");
+        //     }
+
+        //     try {
+        //         // 출발지 정의
+        //         GHPoint startPoint = new GHPoint(37.566535, 126.977969); // 서울 시청 근처->이화여대
+        //         List<Integer> globalAvoidEdges = new ArrayList<>(); // 🔥 전역적으로 Edge 회피 저장
+        //         PointList globalAvoidPoints = new PointList(); // 🔥 전역적으로 Point 회피 저장
+        //         ResponsePath previousPath = null;
             
-            String geoJson1 = GeoJsonExporter1.toGeoJSON(path1);
-            System.out.println("GeoJSON:\n" + geoJson1);
-            try {
-                SaveGeoJson.saveToFile(geoJson1, "example/resources/route1.geojson");
-                System.out.println("GeoJSON1 saved to route1.geojson");
+        //         for (int attempt = 0; attempt < 3; attempt++) { // 🔥 3번의 다른 경로 탐색 시도
+        //             System.out.println("🚀 " + (attempt + 1) + "번째 경로 탐색 시작...");
+            
+        //             ResponsePath diversePath = findDiverseOptimalPath(
+        //                 hopper, startPoint, desiredDistance, globalAvoidEdges, globalAvoidPoints, penalizedEdgeIds, customWeighting
+        //             );
+                            
+        //             if (diversePath != null) {
+        //                 System.out.println("✅ 최종 경로 거리: " + diversePath.getDistance() + " 미터");
+            
+        //                 // 📌 경로가 동일하면 다시 시도하도록 설정
+        //                 if (previousPath != null && Math.abs(diversePath.getDistance() - previousPath.getDistance()) < 5) {
+        //                     System.out.println("⚠️ 동일한 경로가 감지됨. 다시 탐색...");
+        //                     continue;
+        //                 }
+            
+        //                 // 📌 diversePath에서 PointList 추출
+        //                 PointList pathPoints = diversePath.getPoints();
+            
+        //                 // 📌 GeoJSON 생성
+        //                 String geoJson = GeoJsonExporter2.toGeoJSON(diversePath, new PointList(), pathPoints);
+        //                 System.out.println("GeoJSON:\n" + geoJson);
+            
+        //                 // 📌 GeoJSON 저장->경로 example파일로
+        //                 SaveGeoJson.saveToFile(geoJson, "example/resources/route.geojson");
+        //                  System.out.println("GeoJSON saved to route.geojson");
 
-                // Firestore 인스턴스 가져오기
-                Firestore db = FirestoreClient.getFirestore();
-
-                // 저장할 맵 구성
-                Map<String,Object> doc = new HashMap<>();
-                doc.put("content", geoJson1);
-                String geoJsonId="";
-                // ① add(doc) 한 번만 호출해서 Future 얻기
-                ApiFuture<DocumentReference> future = db.collection("geojson").add(doc);
-                try {
-                    DocumentReference ref = future.get();
-                    System.out.println("✅ Firestore 저장 성공, 문서 ID: " + ref.getId());
-                    geoJsonId=ref.getId();
-                } catch (InterruptedException | ExecutionException e) {
-                    System.err.println("❌ Firestore 저장 실패");
-                    e.printStackTrace();
-                }
-
-                // ① 메타 JSON 객체 생성
-                JSONObject meta = new JSONObject();
-                meta.put("geoJsonId", geoJsonId);
-
-                // ② 웹 서버가 읽는 경로에 덮어쓰기
-                Path metaPath = Path.of("example/resources/route_meta.json");
-                    Files.write(metaPath,
-                    meta.toString(2).getBytes(StandardCharsets.UTF_8));
-                System.out.println("▶ route_meta.json 업데이트 완료: " + geoJsonId);
-
-                try {
-                // ② 결과 대기 및 로그 출력
-                    DocumentReference ref = future.get();
-                    System.out.println("Uploaded to Firestore geojson collection, doc ID: " + ref.getId());
-                } catch (InterruptedException | ExecutionException e) {
-                    e.printStackTrace();
-                }
-               
-            } catch (Exception e) {
-                System.err.println("Error saving GeoJSON: " + e.getMessage());
-            }
-        } else {
-            System.out.println("원하는 거리의 경로를 찾을 수 없습니다.(RoutingWithDesiredDistance)");
-        }
-    
-        // 🚀 랜덤 경유지 생성 (500m ~ 1500m 범위 내 3개)
-        PointList randomWaypoints = generateRandomWaypoints(hopper, start, 3, 500, 1500);
-        System.out.println("🔍 route()에서 강제 삽입된 랜덤 경유지: " + randomWaypoints);
-
-        // 🚀 랜덤 경유지를 사용하여 경로 탐색
-        ResponsePath path2 = findPathWithWaypoints(hopper, start, randomWaypoints, penalizedEdgeIds);
-
-        if (path2 != null) {
-            System.out.println("✅ 새로운 경로 거리: " + path2.getDistance() + " 미터");
-
-            String geoJson2 = GeoJsonExporter1.toGeoJSON(path2);
-            System.out.println("GeoJSON:\n" + geoJson2);
-            try {
-                SaveGeoJson.saveToFile(geoJson2, "example/resources/route2.geojson");
-                System.out.println("📂 GeoJSON2 saved to route2.geojson");
-            } catch (Exception e) {
-                System.err.println("❌ Error saving GeoJSON: " + e.getMessage());
-            }
-        } else {
-            System.out.println("❌ 경로를 찾을 수 없습니다.");
-        }
-
-        try {
-            // 출발지 정의
-            GHPoint startPoint = new GHPoint(37.566535, 126.977969); // 서울 시청 근처->이화여대
-            List<Integer> globalAvoidEdges = new ArrayList<>(); // 🔥 전역적으로 Edge 회피 저장
-            PointList globalAvoidPoints = new PointList(); // 🔥 전역적으로 Point 회피 저장
-            ResponsePath previousPath = null;
-        
-            for (int attempt = 0; attempt < 3; attempt++) { // 🔥 3번의 다른 경로 탐색 시도
-                System.out.println("🚀 " + (attempt + 1) + "번째 경로 탐색 시작...");
-        
-                ResponsePath diversePath = findDiverseOptimalPath(
-                    hopper, startPoint, desiredDistance, globalAvoidEdges, globalAvoidPoints, penalizedEdgeIds, customWeighting
-                );
                         
-                if (diversePath != null) {
-                    System.out.println("✅ 최종 경로 거리: " + diversePath.getDistance() + " 미터");
-        
-                    // 📌 경로가 동일하면 다시 시도하도록 설정
-                    if (previousPath != null && Math.abs(diversePath.getDistance() - previousPath.getDistance()) < 5) {
-                        System.out.println("⚠️ 동일한 경로가 감지됨. 다시 탐색...");
-                        continue;
-                    }
-        
-                    // 📌 diversePath에서 PointList 추출
-                    PointList pathPoints = diversePath.getPoints();
-        
-                    // 📌 GeoJSON 생성
-                    String geoJson = GeoJsonExporter2.toGeoJSON(diversePath, new PointList(), pathPoints);
-                    System.out.println("GeoJSON:\n" + geoJson);
-        
-                    // 📌 GeoJSON 저장->경로 example파일로
-                    SaveGeoJson.saveToFile(geoJson, "example/resources/route.geojson");
-                     System.out.println("GeoJSON saved to route.geojson");
+        //                 List<String> geoJsonList = new ArrayList<>();
 
-                    
-                    List<String> geoJsonList = new ArrayList<>();
+        //                 if (path1 != null) {
+        //                     String geoJson1 = GeoJsonExporter1.toGeoJSON(path1);
+        //                     geoJsonList.add(geoJson1);
+        //                 }
 
-                    if (path1 != null) {
-                        String geoJson1 = GeoJsonExporter1.toGeoJSON(path1);
-                        geoJsonList.add(geoJson1);
-                    }
+        //                 if (path2 != null) {
+        //                     String geoJson2 = GeoJsonExporter1.toGeoJSON(path2);
+        //                     geoJsonList.add(geoJson2);
+        //                 }
 
-                    if (path2 != null) {
-                        String geoJson2 = GeoJsonExporter1.toGeoJSON(path2);
-                        geoJsonList.add(geoJson2);
-                    }
-
-                    if (diversePath != null) {
-                        pathPoints = diversePath.getPoints();
-                        String geoJson3 = GeoJsonExporter2.toGeoJSON(diversePath, new PointList(), pathPoints);
-                        geoJsonList.add(geoJson3);
-                    }
-                    
-        
-                    // 🔥 회피할 Edge 및 Points 저장
-                    for (int i = 0; i < pathPoints.size(); i++) {
-                        globalAvoidPoints.add(pathPoints.getLat(i), pathPoints.getLon(i));
-                    }
-                    diversePath.getPathDetails().getOrDefault("edge_id", new ArrayList<>())
-                            .forEach(detail -> globalAvoidEdges.add((Integer) detail.getValue()));
-        
-                    previousPath = diversePath;
-                } else {
-                    System.out.println("❌ 적절한 경로를 찾을 수 없습니다.");
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            hopper.close();
-        }
+        //                 if (diversePath != null) {
+        //                     pathPoints = diversePath.getPoints();
+        //                     String geoJson3 = GeoJsonExporter2.toGeoJSON(diversePath, new PointList(), pathPoints);
+        //                     geoJsonList.add(geoJson3);
+        //                 }
+                        
+            
+        //                 // 🔥 회피할 Edge 및 Points 저장
+        //                 for (int i = 0; i < pathPoints.size(); i++) {
+        //                     globalAvoidPoints.add(pathPoints.getLat(i), pathPoints.getLon(i));
+        //                 }
+        //                 // diversePath.getPathDetails().getOrDefault("edge_id", new ArrayList<>())
+        //                 //         .forEach(detail -> globalAvoidEdges.add((Integer) detail.getValue()));
+            
+        //                 previousPath = diversePath;
+        //             } else {
+        //                 System.out.println("❌ 적절한 경로를 찾을 수 없습니다.");
+        //             }
+        //         }
+        //     } catch (Exception e) {
+        //         e.printStackTrace();
+        //     } finally {
+        //         //hopper.close();
+        //     }
     
         
     }
@@ -474,69 +451,47 @@ public class RoutingExample {
 
         return earthRadius * c;
     }
-    static GraphHopper createGraphHopperInstance(String osmFilePath, Set<Integer> penalizedEdgeIds) {
+    static GraphHopper createGraphHopperInstance(String osmFilePath) {
+        String graphLocation = "target/routing-graph-cache";
+    
+        // 1️⃣ 캐시 폴더 강제 삭제
+        File cacheFolder = new File(graphLocation);
+        if (cacheFolder.exists()) {
+            for (File file : Objects.requireNonNull(cacheFolder.listFiles())) {
+                file.delete();
+            }
+            cacheFolder.delete();
+            System.out.println("🗑️ 기존 GraphHopper 캐시 삭제 완료");
+        }
+    
+        // 2️⃣ 기존 코드 실행
         GraphHopper hopper = new GraphHopper();
     
         GraphHopperConfig config = new GraphHopperConfig()
-            .putObject("graph.location", "target/routing-graph-cache")
+            .putObject("graph.location", graphLocation)
             .putObject("datareader.file", osmFilePath)
-            //.putObject("graph.encoded_values", "edge_id") // 👈 이거 꼭 필요! edge_id 접근 가능하게
-            //.putObject("graph.encoded_values", "aggregated_angle_angle") // aggregated_angle_angle에 접근하기 위해
             .putObject("import.osm.ignored_highways", "platform,rest_area,services");
     
-        // ✅ CustomModel 생성 및 페널티 적용
-        // ⚠️ 여기선 avoidEdges 쓰면 안 됨!
-
         CustomModel model = new CustomModel();
         model.addToSpeed(If("true", LIMIT, "5"));
-
-        // ✅ penalizedEdgeIds만 적용 (createGraphHopperInstance에서)
-        for (Integer edgeId : penalizedEdgeIds) {
-            model.addToPriority(If("edge_id == " + edgeId, MULTIPLY, "0.1"));
-        }
-
-        // ===== 경사도 조건 추가 (SLOPE_PREFERENCE에 따른 조건 적용) =====
-        // 예를 들어, SLOPE_PREFERENCE가 "NORMAL"이면, 0.7637 ~ 3.1911 범위를 선호하도록
-        // 해당 범위에 포함되면 multiplier 1.0, 그 외에선 multiplier 5.0을 적용하도록 합니다.
-        /* 
-        if ("NORMAL".equals(SLOPE_PREFERENCE)) {
-            model.getPriority().add(
-                Statement.If("aggregated_angle_angle < 0.7637 || aggregated_angle_angle > 3.1911", MULTIPLY, "5.0")
-            );
-            model.getPriority().add(Statement.Else(MULTIPLY, "1.0"));
-        } else if ("LOW".equals(SLOPE_PREFERENCE)) {
-        // LOW를 선호하는 경우: 낮은 경사를 우대하기 위해, 경사도가 0.7637보다 큰 경우에만 페널티 부과
-            model.getPriority().add(
-                Statement.If("aggregated_angle_angle > 0.7637", MULTIPLY, "5.0")
-            );
-            model.getPriority().add(Statement.Else(MULTIPLY, "1.0"));
-        } else if ("HIGH".equals(SLOPE_PREFERENCE)) {
-        // HIGH를 선호하는 경우: 높은 경사를 우대하기 위해, 경사도가 3.1911보다 작은 경우에만 페널티 부과
-            model.getPriority().add(
-                Statement.If("aggregated_angle_angle < 3.1911", MULTIPLY, "5.0")
-            );
-            model.getPriority().add(Statement.Else(MULTIPLY, "1.0"));
-        }
-            */
-    // =========================================================
-
-    // 거리 영향도 설정
-    model.setDistanceInfluence(70.0);
-
     
-        // ✅ Profile 설정
+        // for (Integer edgeId : penalizedEdgeIds) {
+        //     model.addToPriority(If("edge_id == " + edgeId, MULTIPLY, "0.1"));
+        // }
+    
+        model.setDistanceInfluence(70.0);
+    
         config.setProfiles(List.of(
-            new Profile("foot")
-                .setWeighting("custom")
-                .setCustomModel(model)
+            new Profile("foot").setWeighting("custom").setCustomModel(model)
         ));
     
-        hopper.getCHPreparationHandler().setCHProfiles(List.of()); // CH 비활성화
+        hopper.getCHPreparationHandler().setCHProfiles(List.of());
         hopper.init(config);
         hopper.importOrLoad();
     
         return hopper;
     }
+    
     
     //-----------------여기서부터가 cycle 만들때 필요한 함수 추가(수정)---------------------
     //다양한 경로 생성
@@ -617,18 +572,28 @@ public class RoutingExample {
             return null;
         }
     
-        // 🔥 **모든 지나온 Edge를 회피하도록 설정 (강력한 회피 적용)**
-        List<PathDetail> edgeDetails = bestPath.getPathDetails().getOrDefault("edge_id", new ArrayList<>());
-        for (PathDetail detail : edgeDetails) {
-            avoidEdges.add((Integer) detail.getValue());
-        }
+    
+    //     // 🔥 **모든 지나온 Edge를 회피하도록 설정 (강력한 회피 적용)**
+    //     List<PathDetail> edgeDetails = bestPath.getPathDetails().getOrDefault("edge_id", new ArrayList<>());
+    //     for (PathDetail detail : edgeDetails) {
+    //         avoidEdges.add((Integer) detail.getValue());
+    //     }
     
         return bestPath;
     }
+    
 
     static ResponsePath findDiverseOptimalPath(GraphHopper hopper, GHPoint startPoint, double desiredDistance,
     List<Integer> avoidEdges, PointList avoidPoints,
-    Set<Integer> penalizedEdgeIds, Weighting customWeighting) {
+    Set<Integer> penalizedEdgeIds, Weighting customWeighting, int attempt) {
+
+    final int MAX_ATTEMPTS = 10;
+
+    if (attempt > MAX_ATTEMPTS) {
+        System.out.println("🚫 최대 시도 횟수 초과(" + MAX_ATTEMPTS + "). 기본 경로를 반환합니다.");
+        //return findPath(hopper, startPoint, startPoint, "foot", customWeighting);
+        return null;
+    }
 
     int numWaypoints = 3;
     double minDistance = desiredDistance * 0.15;
@@ -649,12 +614,9 @@ public class RoutingExample {
     for (int i = 0; i < waypoints.size(); i++) {
         GHPoint waypoint = new GHPoint(waypoints.getLat(i), waypoints.getLon(i));
 
-        // ✅ 회피용 CustomModel 생성
         CustomModel customModel = new CustomModel();
-        for (Integer edgeId : avoidEdges) {
-            // edge_id가 해당하는 곳의 우선순위를 낮춤
-            customModel.addToPriority(If("edge_id == " + edgeId, MULTIPLY, "0.1"));
-        }
+        // for (Integer edgeId : avoidEdges)
+        //     customModel.addToPriority(If("edge_id == " + edgeId, MULTIPLY, "0.1"));
 
         GHRequest req = new GHRequest(previousPoint, waypoint)
             .setProfile("foot")
@@ -671,25 +633,12 @@ public class RoutingExample {
         fullPath = (fullPath == null) ? segment : combinePaths(fullPath, segment);
         totalDistance += segment.getDistance();
 
-        // ✅ 지나온 Edge 기록
-        segment.getPathDetails().getOrDefault("edge_id", new ArrayList<>())
-            .forEach(detail -> avoidEdges.add((Integer) detail.getValue()));
-
         avoidPoints.add(waypoint.lat, waypoint.lon);
         previousPoint = waypoint;
     }
 
-    // ✅ 돌아오는 경로에도 회피 적용
-    CustomModel customModel = new CustomModel();
-    for (Integer edgeId : avoidEdges)
-    customModel.addToPriority(If("edge_id == " + edgeId, MULTIPLY, "0.1"));
-
-    for (Integer edgeId : penalizedEdgeIds)
-    customModel.addToPriority(If("edge_id == " + edgeId, MULTIPLY, "0.1"));
-
     GHRequest returnReq = new GHRequest(previousPoint, startPoint)
         .setProfile("foot")
-        .setCustomModel(customModel)
         .putHint("ch.disable", true);
 
     GHResponse returnRsp = hopper.route(returnReq);
@@ -699,14 +648,18 @@ public class RoutingExample {
         totalDistance += returnSegment.getDistance();
     }
 
-    // ✅ 거리 체크
+    // 거리 확인 후 재시도
     if (totalDistance < lowerBound || totalDistance > upperBound) {
-        System.out.println("❌ 경로 거리 초과 또는 부족. 다시 탐색...");
-        return findDiverseOptimalPath(hopper, startPoint, desiredDistance, avoidEdges, avoidPoints, penalizedEdgeIds,customWeighting);
+        System.out.println("❌ 경로 거리 초과 또는 부족 (거리: " + totalDistance + " m). 다시 탐색 중... (시도 " + attempt + ")");
+        return findDiverseOptimalPath(hopper, startPoint, desiredDistance, avoidEdges, avoidPoints, penalizedEdgeIds, customWeighting, attempt + 1);
     }
+
+    // ✅ 정상 종료일 경우 여기에 도달함
+    System.out.println("✅ distance를 고려한 경로를 찾았습니다. 최종 거리: " + totalDistance + " m");
 
     return fullPath;
 }
+
 
     static ResponsePath findAlternativeReturnPath(GraphHopper hopper, GHPoint start, GHPoint end, List<Integer> avoidEdges, PointList avoidPoints) {
         GHRequest request = new GHRequest()
@@ -731,11 +684,13 @@ public class RoutingExample {
         return response.getBest();
     }
 
-    static ResponsePath findPathWithWaypoints(GraphHopper hopper, GHPoint start, PointList waypoints, Set<Integer> penalizedEdgeIds) {
+    static ResponsePath findPathWithWaypoints(GraphHopper hopper, GHPoint start, PointList waypoints) {
+        
+        
         CustomModel model = new CustomModel();
-        for (Integer edgeId : penalizedEdgeIds) {
-            model.addToPriority(If("edge_id == " + edgeId, MULTIPLY, "0.1"));
-        }
+        // for (Integer edgeId : penalizedEdgeIds) {
+        //     model.addToPriority(If("edge_id == " + edgeId, MULTIPLY, "0.1"));
+        // }
     
         GHRequest req = new GHRequest()
             .setProfile("foot")
@@ -759,5 +714,6 @@ public class RoutingExample {
         }
     
         return rsp.getBest();
-    }    
+    
+    }
 }

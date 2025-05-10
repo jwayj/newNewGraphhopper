@@ -18,14 +18,13 @@ public class LogGeoJson {
     private static final String FILE_PATH = "./example/resources/feedback_log.json";
 
     /**
-     * feedbackMap: key = 구분 이름 (예: routingWithCircle_14)
-     *              value = edge ID 리스트 (예: [123, 456])
+     * 기존 방식: Map<String, List<Integer>> → 변환 후 저장
      */
     public static void writeFeedback(Map<String, List<Integer>> feedbackMap) {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         List<Map<String, List<Map<String, Integer>>>> allFeedback = new ArrayList<>();
 
-        // 기존 파일이 존재하면 이전 데이터 로드
+        // 기존 파일 읽기
         File file = new File(FILE_PATH);
         if (file.exists()) {
             try (Reader reader = new FileReader(file)) {
@@ -36,7 +35,7 @@ public class LogGeoJson {
             }
         }
 
-        // 새 피드백 변환
+        // 새 피드백 변환 및 추가
         Map<String, List<Map<String, Integer>>> converted = new LinkedHashMap<>();
         for (Map.Entry<String, List<Integer>> entry : feedbackMap.entrySet()) {
             List<Map<String, Integer>> edgeList = new ArrayList<>();
@@ -48,10 +47,9 @@ public class LogGeoJson {
             converted.put(entry.getKey(), edgeList);
         }
 
-        // 누적 목록에 추가
         allFeedback.add(converted);
 
-        // 다시 파일에 저장
+        // 다시 저장
         try (Writer writer = new FileWriter(FILE_PATH)) {
             gson.toJson(allFeedback, writer);
             System.out.println("✅ feedback_log.json 누적 저장 완료!");
@@ -60,4 +58,40 @@ public class LogGeoJson {
         }
     }
 
+    /**
+     * 새로운 방식: 클라이언트에서 전달된 raw JSON 문자열을 직접 누적 저장
+     */
+    public static void writeFeedbackRaw(String rawJson) {
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        File file = new File(FILE_PATH);
+        List<Object> allFeedback = new ArrayList<>();
+
+        // 기존 파일 읽기
+        if (file.exists()) {
+            try (Reader reader = new FileReader(file)) {
+                Type listType = new TypeToken<List<Object>>() {}.getType();
+                allFeedback = gson.fromJson(reader, listType);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // 새 피드백 JSON 문자열 파싱
+        try {
+            Type listType = new TypeToken<List<Object>>() {}.getType();
+            List<Object> newFeedback = gson.fromJson(rawJson, listType);
+            allFeedback.addAll(newFeedback);
+        } catch (Exception e) {
+            System.err.println("⚠️ 새 피드백 JSON 파싱 실패: " + e.getMessage());
+            return;
+        }
+
+        // 저장
+        try (Writer writer = new FileWriter(file)) {
+            gson.toJson(allFeedback, writer);
+            System.out.println("✅ feedback_log.json에 raw JSON 누적 저장 완료!");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }

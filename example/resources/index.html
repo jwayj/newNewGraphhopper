@@ -44,7 +44,7 @@
                     url: 'https://dapi.kakao.com/v2/local/geo/coord2address.json?x=' + lon + '&y=' + lat,
                     type: 'GET',
                     headers: {
-                        'Authorization': 'KakaoAK 54a03569d286668aec7ba4c3415a5374' // 실제 REST API 키로 대체
+                        'Authorization': 'KakaoAK 1f8f60dd53fa443dd96264842ac6c3aa' // 실제 REST API 키로 대체
                     },
                     success: function(data) {
                         if (data.documents && data.documents.length > 0) {
@@ -81,13 +81,13 @@
         <input type="checkbox" id="same-as-start">
         <label for="same-as-start">출발지와 같음</label><br><br>
 
-        <label for="distance">거리 (km):</label>
+        <label for="distance">거리 (m):</label>
         <input type="text" id="distance" placeholder="거리를 입력하세요"><br><br>
 
         <fieldset>
             <legend>경사:</legend>
             <input type="radio" id="slope-low"    name="slope" value="low"><label for="slope-low">낮음</label>
-            <input type="radio" id="slope-medium" name="slope" value="medium"><label for="slope-medium">보통</label>
+            <input type="radio" id="slope-normal" name="slope" value="normal"><label for="slope-normal">보통</label>
             <input type="radio" id="slope-high"   name="slope" value="high"><label for="slope-high">높음</label>
         </fieldset><br>
 
@@ -118,30 +118,97 @@
         }
 
         function sendData() {
+            const startAddress = document.getElementById("start-address").value;
+            const endAddress = document.getElementById("end-address").value;
+            const same = document.getElementById("same-as-start").checked;
+
             const payload = {
-                startAddress: document.getElementById("start-address").value,
-                endAddress:   document.getElementById("end-address").value,
-                distance:     document.getElementById("distance").value,
-                same:         document.getElementById("same-as-start").checked,
-                slope:        document.querySelector('input[name="slope"]:checked')?.value
+                startAddress: startAddress,
+                endAddress: endAddress,
+                distance: document.getElementById("distance").value,
+                same: same,
+                slope: document.querySelector('input[name="slope"]:checked')?.value
             };
 
-            fetch('http://localhost:4567/submit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-            .then(res => {
-                if (!res.ok) throw new Error();
-                // 지도 화면으로 이동
-                window.location.href = 'mapNstartbtn.html';
-            })
-            .catch(err => {
-                alert("데이터 전송에 실패했습니다.");
-                window.location.href = 'mapNstartbtn.html';
-                console.error(err);
+            // 1️⃣ 출발지 좌표 확보
+            const getStart = lat && lon
+                ? Promise.resolve({ lat, lon })
+                : new Promise((resolve) => {
+                    getCoordsFromAddress(startAddress, (y, x) => resolve({ lat: parseFloat(y), lon: parseFloat(x) }));
+                });
+
+            getStart.then(({ lat: startLat, lon: startLon }) => {
+                payload.startLat = startLat;
+                payload.startLon = startLon;
+
+                // 2️⃣ 도착지도 좌표 확보 필요할 경우
+                if (!same) {
+                    return new Promise((resolve) => {
+                        getCoordsFromAddress(endAddress, (y, x) => resolve({ lat: parseFloat(y), lon: parseFloat(x) }));
+                    }).then(({ lat: endLat, lon: endLon }) => {
+                        payload.endLat = endLat;
+                        payload.endLon = endLon;
+                        console.log("🚀 전송 데이터 (with endLat):", payload);
+                        postPayload(payload);
+                    });
+                } else {
+                    console.log("🚀 전송 데이터 (same=true):", payload);
+                    postPayload(payload);
+                }
             });
         }
+
+
+
+        function getCoordsFromAddress(address, callback) {
+            $.ajax({
+                url: 'https://dapi.kakao.com/v2/local/search/address.json',
+                type: 'GET',
+                data: { query: address },
+                headers: {
+                    'Authorization': 'KakaoAK 1f8f60dd53fa443dd96264842ac6c3aa'
+                },
+                success: function(res) {
+                    if (res.documents && res.documents.length > 0) {
+                        const loc = res.documents[0];
+                        callback(loc.y, loc.x);  // 위도, 경도
+                    } else {
+                        alert("❗ 주소로 좌표를 찾을 수 없습니다.");
+                    }
+                },
+                error: function() {
+                    alert("⚠️ 주소 좌표 변환 실패");
+                }
+            });
+        }
+        
+        function postPayload(payload) {
+            if (!payload.startLat || !payload.startLon || !payload.distance) {
+                alert("❗ 출발지 좌표 또는 거리 입력이 빠졌습니다.");
+                return;
+            }
+
+        fetch('http://localhost:4567/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(async res => {
+            const text = await res.text();
+            console.log("응답 상태:", res.status);
+            console.log("응답 내용:", text);
+            if (!res.ok) throw new Error(text);
+            // window.location.href = 'mapNstartbtn.html';
+            //이거 오류나서 임시로 새창으로 열기로 바꿈
+            window.open('mapNstartbtn.html', '_blank');
+        }
+    
+    )
+        .catch(err => {
+            alert("데이터 전송에 실패했습니다.");
+            console.error("fetch 에러:", err);
+        });
+    }
     </script>
 </body>
 </html>
