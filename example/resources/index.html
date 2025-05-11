@@ -6,7 +6,7 @@
     <title>주소/거리 입력</title>
     <style>
         body {
-            font-family: 'Noto Sans KR', sans-serif;
+            font-family: 'GmarketSans', sans-serif;
             background-color: #f5f8fa;
             margin: 0;
             padding: 20px;
@@ -22,32 +22,42 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
-        #input label, #input legend {
-            font-size: 20px;
-            font-weight: 600;
+        #input legend {
+            font-size: 22px;
+            font-weight: 500;
+            margin-top: 10px;
+            display: inline-block;
+        }
+
+        #input label {
+            font-size: 22px;
+            font-weight: 500;
             margin-top: 10px;
             display: inline-block;
         }
 
         #input input[type="text"] {
-            width: calc(100% - 120px);
+            width: 100%;
             height: 40px;
             font-size: 16px;
             padding: 6px 10px;
             border: 1px solid #ccc;
+            box-sizing: border-box;
             border-radius: 8px;
+            margin-top:6px;
             margin-bottom: 10px;
         }
 
         #input input[type="button"],
         #btnTest {
-            margin-left: 10px;
+            margin-left: 0px;
             height: 40px;
             padding: 0 15px;
             font-size: 14px;
             border: none;
             border-radius: 8px;
             background-color: #addbff;
+            font-family: 'GmarketSans', sans-serif;
             color: #003366;
             cursor: pointer;
             transition: background-color 0.2s ease;
@@ -65,13 +75,14 @@
         .large-button {
             width: 100%;
             height: 60px;
-            font-size: 20px;
-            background-color: #3385ff;
+            font-size: 25px;
+            background-color: #7bcffa;
             color: white;
+            font-family: 'GmarketSans', sans-serif;
             border: none;
             border-radius: 12px;
             cursor: pointer;
-            margin-top: 20px;
+            margin-top: 10px;
             transition: background-color 0.2s ease;
         }
 
@@ -102,10 +113,12 @@
         }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/ungveloper/web-fonts/GmarketSans/font-face.css" />
 </head>
 <body>
     <div id="input">
-        <label for="start-address">출발지:</label>
+        <label for="start-address">출발지</label><br>
         <input type="text" id="start-address" placeholder="주소">
         <input type="button" onclick="openDaumPostcodeEmbed('start-address')" value="주소 검색">
         <button id="btnTest">현재 위치 입력</button>
@@ -159,21 +172,21 @@
             </script>
             
 
-        <label for="end-address">도착지:</label>
+        <label for="end-address">도착지</label><br>
         <input type="text" id="end-address" placeholder="주소">
         <input type="button" onclick="openDaumPostcodeEmbed('end-address')" value="주소 검색"><br><br>
 
         <input type="checkbox" id="same-as-start">
-        <label for="same-as-start">출발지와 같음</label><br><br>
+        <label for="same-as-start" style="font-size:18px;">출발지와 같음</label><br><br>
 
-        <label for="distance">거리 (m):</label>
-        <input type="text" id="distance" placeholder="거리를 입력하세요"><br><br>
+        <label for="distance">거리 (m)</label><br>
+        <input type="text" id="distance" placeholder="거리를 입력하세요."><br><br>
 
         <fieldset>
-            <legend>경사:</legend>
-            <input type="radio" id="slope-low"    name="slope" value="low"><label for="slope-low">낮음</label>
-            <input type="radio" id="slope-normal" name="slope" value="normal"><label for="slope-normal">보통</label>
-            <input type="radio" id="slope-high"   name="slope" value="high"><label for="slope-high">높음</label>
+            <legend>경사</legend>
+            <input type="radio" id="slope-low"    name="slope" value="low"><label for="slope-low" style="font-size:18px;">낮음</label>
+            <input type="radio" id="slope-normal" name="slope" value="normal"><label for="slope-normal" style="font-size:18px;">보통</label>
+            <input type="radio" id="slope-high"   name="slope" value="high"><label for="slope-high" style="font-size:18px;">높음</label>
         </fieldset><br>
 
         <button class="large-button" onclick="sendData()">경로 탐색</button>
@@ -306,7 +319,7 @@
         }
 
         // ngrok 주소로 변경 (예: https://abcd1234.ngrok-free.app/submit)
-        fetch('https://1b8b-110-11-97-50.ngrok-free.app/submit', {
+        fetch('https://f195-115-161-96-106.ngrok-free.app/submit', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
