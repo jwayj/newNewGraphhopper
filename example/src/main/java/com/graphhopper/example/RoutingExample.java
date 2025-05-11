@@ -6,30 +6,22 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.reflect.Type;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
-import java.util.Objects;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.charset.StandardCharsets;
 
-import com.google.api.core.ApiFuture;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.firestore.DocumentReference;
-import com.google.cloud.firestore.Firestore;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
-import com.google.firebase.cloud.FirestoreClient;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.graphhopper.GHRequest;
@@ -40,7 +32,6 @@ import com.graphhopper.ResponsePath;
 import com.graphhopper.config.Profile;
 import static com.graphhopper.json.Statement.If;
 import static com.graphhopper.json.Statement.Op.LIMIT;
-import static com.graphhopper.json.Statement.Op.MULTIPLY;
 import com.graphhopper.routing.util.EdgeFilter;
 import com.graphhopper.routing.weighting.Weighting;
 import com.graphhopper.storage.index.LocationIndex;
@@ -587,7 +578,7 @@ public class RoutingExample {
     List<Integer> avoidEdges, PointList avoidPoints,
     Set<Integer> penalizedEdgeIds, Weighting customWeighting, int attempt) {
 
-    final int MAX_ATTEMPTS = 10;
+    final int MAX_ATTEMPTS = 100;
 
     if (attempt > MAX_ATTEMPTS) {
         System.out.println("🚫 최대 시도 횟수 초과(" + MAX_ATTEMPTS + "). 기본 경로를 반환합니다.");

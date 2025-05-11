@@ -101,6 +101,8 @@
 
     <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     <script>
+        
+
         function openDaumPostcodeEmbed(targetInputId) {
             document.getElementById('postcode-layer').style.display = 'block';
             new daum.Postcode({
@@ -182,15 +184,49 @@
             });
         }
         
-        function postPayload(payload) {
-            if (!payload.startLat || !payload.startLon || !payload.distance) {
-                alert("❗ 출발지 좌표 또는 거리 입력이 빠졌습니다.");
-                return;
-            }
+    //     function postPayload(payload) {
+    //         if (!payload.startLat || !payload.startLon || !payload.distance) {
+    //             alert("❗ 출발지 좌표 또는 거리 입력이 빠졌습니다.");
+    //             return;
+    //         }
 
-        fetch('http://localhost:4567/submit', {
+    //     fetch('http://localhost:4567/submit', {
+    //         method: 'POST',
+    //          headers: {
+    //         'Content-Type': `application/json`,
+    //         'ngrok-skip-browser-warning': '69420',
+    //         },
+    //         body: JSON.stringify(payload)
+    //     })
+    //     .then(async res => {
+    //         const text = await res.text();
+    //         console.log("응답 상태:", res.status);
+    //         console.log("응답 내용:", text);
+    //         if (!res.ok) throw new Error(text);
+    //         // window.location.href = 'mapNstartbtn.html';
+    //         //이거 오류나서 임시로 새창으로 열기로 바꿈
+    //         window.open('mapNstartbtn.html', '_blank');
+    //     }
+    
+    // )
+    //     .catch(err => {
+    //         alert("데이터 전송에 실패했습니다.");
+    //         console.error("fetch 에러:", err);
+    //     });
+    // }
+    function postPayload(payload) {
+        if (!payload.startLat || !payload.startLon || !payload.distance) {
+            alert("❗ 출발지 좌표 또는 거리 입력이 빠졌습니다.");
+            return;
+        }
+
+        // ngrok 주소로 변경 (예: https://abcd1234.ngrok-free.app/submit)
+        fetch('https://1b8b-110-11-97-50.ngrok-free.app/submit', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': '69420',
+            },
             body: JSON.stringify(payload)
         })
         .then(async res => {
@@ -200,7 +236,8 @@
             if (!res.ok) throw new Error(text);
             // window.location.href = 'mapNstartbtn.html';
             //이거 오류나서 임시로 새창으로 열기로 바꿈
-            window.open('mapNstartbtn.html', '_blank');
+            // window.open('mapNstartbtn.html', '_blank');
+            window.location.href = 'mapNstartbtn.html';
         }
     
     )
@@ -209,6 +246,7 @@
             console.error("fetch 에러:", err);
         });
     }
+
     </script>
 </body>
 </html>
