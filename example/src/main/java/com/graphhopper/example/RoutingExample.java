@@ -589,8 +589,8 @@ public class RoutingExample {
     int numWaypoints = 3;
     double minDistance = desiredDistance * 0.15;
     double maxDistance = desiredDistance * 0.4;
-    double lowerBound = desiredDistance * 0.9;
-    double upperBound = desiredDistance * 1.1;
+    double lowerBound = desiredDistance -100;
+    double upperBound = desiredDistance +100;
 
     PointList waypoints = generateDiverseWaypoints(hopper, startPoint, numWaypoints, minDistance, maxDistance);
     ResponsePath fullPath = null;
