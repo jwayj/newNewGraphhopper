@@ -1,9 +1,7 @@
 package com.graphhopper.example;
     
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileReader;
-import java.io.IOException;
 import java.io.Reader;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -16,12 +14,6 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.firebase.FirebaseApp;
-import com.google.firebase.FirebaseOptions;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.graphhopper.GHRequest;
@@ -43,6 +35,7 @@ import com.graphhopper.util.PointList;
 import com.graphhopper.util.details.PathDetail;
 import com.graphhopper.util.shapes.GHPoint;
 
+
 public class RoutingExample {
 
     // 사용자 경사 선호: "LOW", "NORMAL", "HIGH" 중 하나를 문자열로 입력 (예: "NORMAL")
@@ -60,20 +53,6 @@ public class RoutingExample {
     public static double distance;
 
     public static void main(String[] args) {
-    
-    try {
-        FileInputStream serviceAccount = new FileInputStream("backend/runpt-aaae1-firebase-adminsdk-fbsvc-24d537642e.json");
-        FirebaseOptions options = FirebaseOptions.builder()
-            .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-            .build();
-        FirebaseApp.initializeApp(options);
-        System.out.println("✅ Firebase 초기화 성공");
-    } catch (IOException e) {
-        e.printStackTrace();
-        System.err.println("❌ Firebase 초기화 실패");
-        return;
-    } 
-
     // ✅ 1. 피드백 서버 시작
 
     // ✅ 2. 피드백 파일 로드 (새 JSON 구조 대응)
@@ -261,13 +240,6 @@ public class RoutingExample {
         //     }
     
         
-    }
-
-    private static JSONObject buildResponseJson(ResponsePath path, String geoJsonId) throws JSONException {
-        JSONObject out = new JSONObject();
-        // Firestore 문서 ID
-        out.put("geoJsonId", geoJsonId);
-        return out;
     }
 
     public static ResponsePath routingWithDesiredDistance(GraphHopper hopper, double desiredDistance, GHPoint start, GHPoint end,Weighting customWeighting) {
@@ -589,8 +561,8 @@ public class RoutingExample {
     int numWaypoints = 3;
     double minDistance = desiredDistance * 0.15;
     double maxDistance = desiredDistance * 0.4;
-    double lowerBound = desiredDistance -100;
-    double upperBound = desiredDistance +100;
+    double lowerBound = desiredDistance * 0.9;
+    double upperBound = desiredDistance * 1.1;
 
     PointList waypoints = generateDiverseWaypoints(hopper, startPoint, numWaypoints, minDistance, maxDistance);
     ResponsePath fullPath = null;
