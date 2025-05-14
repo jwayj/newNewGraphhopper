@@ -331,7 +331,6 @@
                     const successConditions = [
                         res.status === 200,
                         text.includes("🟢 경로 생성 성공"),
-                        text.includes("✅ Firestore 저장 성공")
                     ];
                     
                     if (!successConditions.every(condition => condition)) {
