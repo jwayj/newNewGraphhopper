@@ -112,6 +112,19 @@
             transform: scale(1.2);
             margin-right: 6px;
         }
+        /* 로딩 레이어 스타일 */
+#loading-overlay {
+  display: none;               /* JS로 토글 */
+  position: fixed;             /* 뷰포트에 고정 */
+  inset: 0;                    /* top:0; right:0; bottom:0; left:0; */
+  width: 100vw;                /* 가로 전체 */
+  height: 100vh;               /* 세로 전체 */
+  background: rgba(0, 0, 0, 0.5); /* 반투명 검정 */
+  z-index: 9999;               /* 최상위 */
+  display: flex;               /* 가운데 정렬을 위한 flex */
+  align-items: center;
+  justify-content: center;
+}
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" as="style" crossorigin
@@ -203,8 +216,27 @@
         <div id="postcode-embed" style="width:400px;height:500px;margin:40px auto;background:#fff;"></div>
     </div>
 
+    <!-- 페이지 맨 아래, 스크립트 바로 위에 삽입 -->
+    <div id="loading-overlay" style="
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1.2em;
+    ">
+        경로를 탐색 중입니다…
+    </div>
+
     <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     <script>
+        const loading = document.getElementById('loading-overlay');
+        function showLoading() { loading.style.display = 'flex'; }
+        function hideLoading() { loading.style.display = 'none'; }
 
 
         function openDaumPostcodeEmbed(targetInputId) {
@@ -224,6 +256,8 @@
         }
 
         function sendData() {
+            showLoading();
+
             const startAddress = document.getElementById("start-address").value;
             const endAddress = document.getElementById("end-address").value;
             const same = document.getElementById("same-as-start").checked;
@@ -264,8 +298,8 @@
             });
         }
         const startInput = document.getElementById('start-address');
-        const endInput   = document.getElementById('end-address');
-        const sameChk    = document.getElementById('same-as-start');
+        const endInput = document.getElementById('end-address');
+        const sameChk = document.getElementById('same-as-start');
         // 체크박스 클릭 이벤트
         sameChk.addEventListener('change', () => {
             if (sameChk.checked) {
@@ -307,13 +341,14 @@
         }
 
         function postPayload(payload) {
+            showLoading(); 
             if (!payload.startLat || !payload.startLon || !payload.distance) {
                 alert("❗ 출발지 좌표 또는 거리 입력이 빠졌습니다.");
                 return;
             }
 
             // ngrok 주소로 변경 (예: https://abcd1234.ngrok-free.app/submit)
-            fetch('https://a8a2-110-11-97-50.ngrok-free.app/submit', {
+            fetch('https://e730-115-161-96-106.ngrok-free.app/submit', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -326,18 +361,18 @@
                     const text = await res.text();
                     console.log("응답 상태:", res.status);
                     console.log("응답 내용:", text);
-                    
+
                     // 성공 조건 명확화
                     const successConditions = [
                         res.status === 200,
                         text.includes("🟢 경로 생성 성공"),
                     ];
-                    
+
                     if (!successConditions.every(condition => condition)) {
                         throw new Error(
-                            text.includes("❌") ? 
-                            text.split('\n').find(line => line.includes("❌")) :  // 가장 첫 번째 에러 라인 추출
-                            `서버 오류 (${res.status}): ${text.substring(0, 50)}...`
+                            text.includes("❌") ?
+                                text.split('\n').find(line => line.includes("❌")) :  // 가장 첫 번째 에러 라인 추출
+                                `서버 오류 (${res.status}): ${text.substring(0, 50)}...`
                         );
                     }
 
@@ -347,6 +382,9 @@
                     console.error("fetch 에러:", err);
                     alert(`🚨 경로 생성 실패\n 다시 시도해주세요`);  // 사용자 친화적 메시지
                     document.getElementById('loading').style.display = 'none';  // 로딩 인디케이터 숨기기
+                })
+                .finally(() => {
+                    hideLoading();      // ③ 성공·실패 상관없이 무조건 숨기기
                 });
 
         }
