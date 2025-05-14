@@ -184,9 +184,9 @@
 
         <fieldset>
             <legend>경사</legend>
-            <input type="radio" id="slope-low"    name="slope" value="low"><label for="slope-low" style="font-size:18px;">낮음</label>
-            <input type="radio" id="slope-normal" name="slope" value="normal"><label for="slope-normal" style="font-size:18px;">보통</label>
-            <input type="radio" id="slope-high"   name="slope" value="high"><label for="slope-high" style="font-size:18px;">높음</label>
+            <input type="radio" id="slope-low"    name="slope" value="LOW"><label for="slope-low" style="font-size:18px;">낮음</label>
+            <input type="radio" id="slope-normal" name="slope" value="NORMAL"><label for="slope-normal" style="font-size:18px;">보통</label>
+            <input type="radio" id="slope-high"   name="slope" value="HIGH"><label for="slope-high" style="font-size:18px;">높음</label>
         </fieldset><br>
 
         <button class="large-button" onclick="sendData()">경로 탐색</button>
@@ -319,7 +319,7 @@
         }
 
         // ngrok 주소로 변경 (예: https://abcd1234.ngrok-free.app/submit)
-        fetch('https://5f42-115-161-96-106.ngrok-free.app/submit', {
+        fetch('https://41fe-115-161-96-106.ngrok-free.app/submit', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

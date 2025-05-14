@@ -72,16 +72,6 @@ public class FeedbackServer {
                     1500);
             path = RoutingExample.findPathWithWaypoints(RoutingExample.hopper, start, waypoints);
 
-            /*
-             * if (path != null) {
-             * String geoJson = GeoJsonExporter1.toGeoJSON(path);
-             * SaveGeoJson.saveToFile(geoJson, "example/resources/route2.geojson");
-             * System.out.println("📂 route2.geojson 저장 완료");
-             * } else {
-             * System.err.println("❌ route2.geojson 저장 실패: 경로가 null입니다.");
-             * }
-             */
-
             // 2. 다양화된 원형 경로도 생성
             List<Integer> avoidEdges = new ArrayList<>();
             PointList avoidPoints = new PointList();
