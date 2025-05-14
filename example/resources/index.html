@@ -313,7 +313,7 @@
             }
 
             // ngrok 주소로 변경 (예: https://abcd1234.ngrok-free.app/submit)
-            fetch('https://41fe-115-161-96-106.ngrok-free.app/submit', {
+            fetch('https://a8a2-110-11-97-50.ngrok-free.app/submit', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -321,22 +321,35 @@
                 },
                 body: JSON.stringify(payload)
             })
+                // 수정된 fetch 처리 부분
                 .then(async res => {
                     const text = await res.text();
                     console.log("응답 상태:", res.status);
                     console.log("응답 내용:", text);
-                    if (!res.ok) throw new Error(text);
-                    // window.location.href = 'mapNstartbtn.html';
-                    //이거 오류나서 임시로 새창으로 열기로 바꿈
-                    // window.open('mapNstartbtn.html', '_blank');
-                    window.location.href = 'mapNstartbtn.html';
-                }
+                    
+                    // 성공 조건 명확화
+                    const successConditions = [
+                        res.status === 200,
+                        text.includes("🟢 경로 생성 성공"),
+                        text.includes("✅ Firestore 저장 성공")
+                    ];
+                    
+                    if (!successConditions.every(condition => condition)) {
+                        throw new Error(
+                            text.includes("❌") ? 
+                            text.split('\n').find(line => line.includes("❌")) :  // 가장 첫 번째 에러 라인 추출
+                            `서버 오류 (${res.status}): ${text.substring(0, 50)}...`
+                        );
+                    }
 
-                )
+                    window.location.href = 'mapNstartbtn.html';
+                })
                 .catch(err => {
-                    alert("데이터 전송에 실패했습니다.");
                     console.error("fetch 에러:", err);
+                    alert(`🚨 경로 생성 실패\n 다시 시도해주세요`);  // 사용자 친화적 메시지
+                    document.getElementById('loading').style.display = 'none';  // 로딩 인디케이터 숨기기
                 });
+
         }
 
     </script>
