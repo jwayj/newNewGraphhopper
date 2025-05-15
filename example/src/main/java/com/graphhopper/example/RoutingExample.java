@@ -51,6 +51,8 @@ public class RoutingExample {
     public static boolean same;
     public static String slope;
     public static double distance;
+    public static Map<Long, Double> slopeData;
+    public static Weighting baseWeighting;
 
     public static void main(String[] args) {
     // ✅ 1. 피드백 서버 시작
@@ -81,7 +83,7 @@ public class RoutingExample {
      String slopeLayerName = "_";
      GpkgSlopeReader slopeReader = new GpkgSlopeReader(slopeLayerName);
      // load된 slope 데이터 전체를 가져오기 (osm_id와 aggregated_angle_angle의 매핑)
-     Map<Long, Double> slopeData = slopeReader.getAllSlopeData();
+     slopeData = slopeReader.getAllSlopeData();
      
      if (slopeData.isEmpty()) {
          System.out.println("gpkg 파일로부터 경사도 데이터를 불러오지 못했습니다. 레이어 이름과 파일을 확인하세요.");
@@ -100,13 +102,14 @@ public class RoutingExample {
     RoutingExample.hopper = createGraphHopperInstance(relDir + "seoul-non-military.osm.pbf");
 
     // 최신 방식: 프로필("foot")을 통해 기본 Weighting 생성
+   
         Profile footProfile = hopper.getProfile("foot");
         if (footProfile == null) {
             throw new IllegalArgumentException("Profile 'foot' not found.");
         }
         com.graphhopper.util.PMap pmap = new com.graphhopper.util.PMap();
-        Weighting baseWeighting = hopper.createWeighting(footProfile, pmap);
-
+        baseWeighting = hopper.createWeighting(footProfile, pmap);
+    
         // 사용자 선호 옵션 문자열을 enum으로 변환 후 CustomSlopeEncodedValue 생성
         CustomSlopeEncodedValue.SlopePreference pref = CustomSlopeEncodedValue.SlopePreference.valueOf(SLOPE_PREFERENCE);
         CustomSlopeEncodedValue slopeEV = new CustomSlopeEncodedValue("custom_slope_penalty", slopeData, pref);
