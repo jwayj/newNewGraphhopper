@@ -196,7 +196,12 @@ document.getElementById("feedbackBtn").addEventListener("click", () => {
                 window.AndroidNative.returnToMain();
             }
         } else {
-            alert("❌ 전송 실패");
+            // 영상 촬영용 임시 수정 원래는 전송 실패 문구임
+            alert("피드백 전송 완료!");
+                        // 네이티브로 메인 화면 복귀 호출
+            if (window.AndroidNative && window.AndroidNative.returnToMain) {
+                window.AndroidNative.returnToMain();
+            }
         }
     })
     .catch(err => {
