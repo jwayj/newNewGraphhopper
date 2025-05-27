@@ -79,6 +79,27 @@
     <script>
         const selectedEdges = new Set();
         const edgeMap = new Map();
+        const feedbackPoints = [];
+
+        function saveAvoidPoint(lat, lon) {
+            fetch('https://f6e2-14-39-146-251.ngrok-free.app/feedback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': '69420' // 필요 없으면 제거
+                },
+                body: JSON.stringify({ avoidPoints: feedbackPoints })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert("✅ 회피 포인트 저장 완료!");
+                location.reload(); // 새로고침해서 마커 반영
+            })
+            .catch(err => {
+                console.error("❌ 저장 실패", err);
+                alert("⚠️ 서버 저장 실패!");
+            });
+        }
 
         function loadMap() {
             const map = L.map('map').setView([37.5665, 126.9780], 14);
@@ -86,6 +107,37 @@
                 maxZoom: 19, attribution: '© OpenStreetMap contributors'
             }).addTo(map);
             loadRoute1(map);
+            loadAvoidPoints(map);  // 여기 꼭 추가!
+
+            map.on('click', function (e) {
+            const lat = e.latlng.lat;
+            const lon = e.latlng.lng;
+
+            if (confirm(`이 위치를 회피 포인트로 저장할까요?\n(${lat.toFixed(5)}, ${lon.toFixed(5)})`)) {
+                feedbackPoints.push({ lat, lon });
+
+                const newMarker = L.circleMarker([lat, lon], {
+                    radius: 8,
+                    color: 'orange',
+                    fillColor: 'orange',
+                    fillOpacity: 0.7
+                }).addTo(map);
+
+                newMarker.selected = false;
+                newMarker.on('click', () => {
+                    if (newMarker.selected) {
+                        newMarker.setStyle({ color: 'orange', fillColor: 'orange' });
+                        newMarker.selected = false;
+                    } else {
+                        newMarker.setStyle({ color: 'yellow', fillColor: 'yellow' });
+                        newMarker.selected = true;
+                    }
+                });
+
+                saveAvoidPoint(lat, lon);
+            }
+        });
+
         }
 
         function loadRoute1(map) {
@@ -101,15 +153,16 @@
                         const segment = [latlngs[i], latlngs[i + 1]];
                         const polyline = L.polyline(segment, { color: 'blue', weight: 5 }).addTo(map);
                         edgeMap.set(edgeId, polyline);
-                        polyline.on('click', () => {
-                            if (selectedEdges.has(edgeId)) {
-                                polyline.setStyle({ color: 'blue' });
-                                selectedEdges.delete(edgeId);
-                            } else {
-                                polyline.setStyle({ color: 'yellow' });
-                                selectedEdges.add(edgeId);
-                            }
-                        });
+
+                        // polyline.on('click', () => {
+                        //     if (selectedEdges.has(edgeId)) {
+                        //         polyline.setStyle({ color: 'blue' });
+                        //         selectedEdges.delete(edgeId);
+                        //     } else {
+                        //         polyline.setStyle({ color: 'yellow' });
+                        //         selectedEdges.add(edgeId);
+                        //     }
+                        // });
                     });
 
                     L.marker(latlngs[0], { icon: createIcon('green') }).addTo(map).bindPopup('출발지');
@@ -120,6 +173,38 @@
                     updateLegendWithDistance('routingWithDesiredDistance', dist);
                 });
         }
+
+        //point로 피드백 추가
+        function loadAvoidPoints(map) {
+            fetch('avoid_points.json')
+                .then(res => res.json())
+                .then(points => {
+                    points.forEach((pt) => {
+                        const marker = L.circleMarker([pt.lat, pt.lon], {
+                            radius: 8,
+                            color: 'orange',
+                            fillColor: 'orange',
+                            fillOpacity: 0.7
+                        }).addTo(map);
+
+                        marker.selected = false;
+                        marker.on('click', () => {
+                            if (marker.selected) {
+                                marker.setStyle({ color: 'orange', fillColor: 'orange' });
+                                marker.selected = false;
+                            } else {
+                                marker.setStyle({ color: 'yellow', fillColor: 'yellow' });
+                                marker.selected = true;
+                            }
+                        });
+                    });
+                    console.log(`🟠 ${points.length}개의 회피 지점 마커 로드`);
+                })
+                .catch(err => {
+                    console.error("❌ 회피 포인트 로드 실패:", err);
+                });
+        }
+
 
         function createIcon(color) {
             return L.icon({
