@@ -1,1 +1,0 @@
-{"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "LineString", "coordinates": [[126.9496709, 37.5643006]]}, "properties": {"type": "route"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.9496709, 37.5643006]}, "properties": {"type": "start/end"}}]}

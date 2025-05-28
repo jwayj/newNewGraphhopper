@@ -7,12 +7,14 @@
     <title>지도 화면</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        html, body {
+        html,
+        body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
         }
+
         #map {
             width: 100%;
             height: 100%;
@@ -50,6 +52,7 @@
             cursor: pointer;
             margin: 10px 0;
         }
+
         .leaflet-tile-pane img {
             filter: hue-rotate(20deg);
         }
@@ -61,6 +64,9 @@
     <div id="info"></div>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <!-- Firebase (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script>
         const selectedEdges = new Set();
         const edgeMap = new Map();
@@ -79,7 +85,7 @@
                     position => {
                         const lat = position.coords.latitude;
                         const lng = position.coords.longitude;
-                        
+
                         // 기존 마커 제거[2]
                         if (yellowMarker) map.removeLayer(yellowMarker);
 
@@ -94,52 +100,88 @@
                         console.log("위치 정확도:", position.coords.accuracy + "m"); // 정확도 로깅[1]
                     },
                     error => alert('위치 정보 오류: ' + error.message),
-                    { 
+                    {
                         enableHighAccuracy: true, // 고정밀 모드 활성화[1]
-                        maximumAge: 0, 
-                        timeout: 10000 
+                        maximumAge: 0,
+                        timeout: 10000
                     }
                 );
             } else {
                 alert('이 브라우저는 위치 정보를 지원하지 않습니다.');
             }
 
-            loadRoute1(map);
         }
 
-        function loadRoute1(map) {
-            fetch('./route1.geojson')
-                .then(res => res.json())
-                .then(data => {
-                    const coords = data.features[0].geometry.coordinates;
+        // ── 1) Firebase 초기화 ──
+        const firebaseConfig = {
+            apiKey: "AIzaSyD5PjXsmqu86IxRhIbw83HpNZz1wSD2kuc",
+            authDomain: "runpt-aaae1.firebaseapp.com",
+            projectId: "runpt-aaae1",
+            storageBucket: "runpt-aaae1.appspot.com",
+            messagingSenderId: "620578686575",
+            appId: "1:620578686575:web:fbbdf61ac2249ce5862f9a",
+            measurementId: "G-C3NP6WJNV7"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // ── 2) 지도 생성 + Firestore에서 경로 로드 ──
+        function loadMap() {
+            const map = L.map('map').setView([37.5665, 126.9780], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19, attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            loadRouteFromFirestore(map);
+        }
+
+        function loadRouteFromFirestore(map) {
+            // AndroidBridge로부터 문서 ID 받기
+            if (!window.AndroidBridge || !AndroidBridge.getGeoJsonId) {
+                return console.error("AndroidBridge.getGeoJsonId() 미등록");
+            }
+            const docId = AndroidBridge.getGeoJsonId();
+            console.log('받은 geoJsonId:', docId);
+
+            // Firestore에서 geojson 문서 가져오기
+            db.collection('geojson').doc(docId).get()
+                .then(docSnap => {
+                    if (!docSnap.exists) {
+                        throw new Error('문서를 찾을 수 없습니다');
+                    }
+                    // 'content' 필드에 GeoJSON 문자열이 저장되어 있다고 가정
+                    const geo = JSON.parse(docSnap.data().content);
+                    const coords = geo.features[0].geometry.coordinates;
                     const latlngs = coords.map(c => [c[1], c[0]]);
 
+                    // 선 그리기 및 클릭 이벤트
                     latlngs.forEach((_, i) => {
                         if (i === latlngs.length - 1) return;
-                        const edgeId = `route1_${i}`;
-                        const segment = [latlngs[i], latlngs[i + 1]];
-                        const polyline = L.polyline(segment, { color: 'blue', weight: 5 }).addTo(map);
-                        edgeMap.set(edgeId, polyline);
-                        polyline.on('click', () => {
-                            if (selectedEdges.has(edgeId)) {
-                                polyline.setStyle({ color: 'blue' });
-                                selectedEdges.delete(edgeId);
-                            } else {
-                                polyline.setStyle({ color: 'yellow' });
-                                selectedEdges.add(edgeId);
-                            }
-                        });
+                        L.polyline([latlngs[i], latlngs[i + 1]], {
+                            color: 'blue', weight: 5
+                        }).addTo(map)
+                            .on('click', function () {
+                                const newColor = (this.options.color === 'yellow') ? 'blue' : 'yellow';
+                                this.setStyle({ color: newColor });
+                            });
                     });
 
-                    L.marker(latlngs[0], { icon: createIcon('green') }).addTo(map).bindPopup('출발지');
-                    L.marker(latlngs.slice(-1)[0], { icon: createIcon('red') }).addTo(map).bindPopup('도착지');
-                    map.fitBounds(L.polyline(latlngs).getBounds());
+                    // 시작/도착 마커
+                    L.marker(latlngs[0], { icon: createIcon('green') })
+                        .addTo(map).bindPopup('출발지');
+                    L.marker(latlngs.slice(-1)[0], { icon: createIcon('red') })
+                        .addTo(map).bindPopup('도착지');
 
-                    const dist = calculateDistance(data);
-                    updateLegendWithDistance('routingWithDesiredDistance', dist);
-                });
+                    // 전체 경로에 맞춰 줌
+                    const poly = L.polyline(latlngs);
+                    map.fitBounds(poly.getBounds());
+
+                    // 범례에 거리 표시 (필요시)
+                    updateLegendWithDistance('총거리', calculateDistance(geo));
+                })
+                .catch(err => console.error(err));
+
         }
-
         function createIcon(color) {
             return L.icon({
                 iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
@@ -147,25 +189,25 @@
             });
         }
 
-        function calculateDistance(geoJson) {
-            const coords = geoJson.features[0].geometry.coordinates;
+        // 헬퍼: 거리 계산
+        function calculateDistance(geo) {
+            const coords = geo.features[0].geometry.coordinates;
             let d = 0;
             for (let i = 1; i < coords.length; i++) {
-                d += getDistance(coords[i - 1][1], coords[i - 1][0], coords[i][1], coords[i][0]);
+                const [lon1, lat1] = coords[i - 1];
+                const [lon2, lat2] = coords[i];
+                d += getDistance(lat1, lon1, lat2, lon2);
             }
             return d;
         }
-
         function getDistance(lat1, lon1, lat2, lon2) {
             const R = 6371000;
-            const dLat = deg2rad(lat2 - lat1), dLon = deg2rad(lon2 - lon1);
-            const a = Math.sin(dLat / 2) ** 2 +
-                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-                Math.sin(dLon / 2) ** 2;
+            const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         }
-
-        function deg2rad(deg) { return deg * Math.PI / 180; }
 
         function updateLegendWithDistance(name, distance) {
             const legend = document.getElementById('legend');

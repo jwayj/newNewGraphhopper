@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -97,6 +98,15 @@ public class FeedbackServer {
                 List<Integer> avoidEdges = new ArrayList<>();
                 ResponsePath diversePath = RoutingExample.findDiverseOptimalPath(
                         RoutingExample.hopper, start, distance, avoidEdges, RoutingExample.globalAvoidPoints,
+                PointList waypoints = RoutingExample.generateRandomWaypoints(RoutingExample.hopper, start, 3, 500,
+                        1500);
+                path = RoutingExample.findPathWithWaypoints(RoutingExample.hopper, start, waypoints);
+
+                // 2. 다양화된 원형 경로도 생성
+                List<Integer> avoidEdges = new ArrayList<>();
+                PointList avoidPoints = new PointList();
+                ResponsePath diversePath = RoutingExample.findDiverseOptimalPath(
+                        RoutingExample.hopper, start, distance, avoidEdges, avoidPoints,
                         new HashSet<>(), RoutingExample.customWeighting, 1);
 
                 if (diversePath != null) {
@@ -156,6 +166,7 @@ public class FeedbackServer {
                 // 1. 거리 기반 경로 생성
                 ResponsePath path1 = RoutingExample.routingWithDesiredDistance(
                         RoutingExample.hopper, distance, start, end, RoutingExample.customWeighting, RoutingExample.globalAvoidPoints);
+                        RoutingExample.hopper, distance, start, end, RoutingExample.customWeighting);
 
                 if (path1 != null) {
                     String geoJson1 = GeoJsonExporter1.toGeoJSON(path1);
