@@ -208,7 +208,7 @@ public class FeedbackServer {
             return "🟢 경로 생성 성공";
         });
 
-        //피드백 추가
+         //피드백 추가
         post("/feedback", (req, res) -> {
             Gson gson = new Gson();
             Map<String, Object> body = gson.fromJson(req.body(), Map.class);
@@ -275,6 +275,46 @@ public class FeedbackServer {
             // globalAvoidPoints 갱신 코드 끝
 
             return "{\"status\":\"ok\"}";
+        });
+
+        //피드백 삭제 추가
+        post("/feedback-delete", (req, res) -> {
+            Gson gson = new Gson();
+            Map<String, Double> point = gson.fromJson(req.body(), Map.class);
+
+            double lat = point.get("lat");
+            double lon = point.get("lon");
+
+            File file = new File("example/resources/avoid_points.json");
+            List<Map<String, Double>> pointList = new ArrayList<>();
+
+            if (file.exists()) {
+                String content = Files.readString(file.toPath(), StandardCharsets.UTF_8);
+                if (content != null && !content.isBlank()) {
+                    Type listType = new TypeToken<List<Map<String, Double>>>() {}.getType();
+                    pointList = gson.fromJson(content, listType);
+                }
+            }
+
+            // 반경 30m 이내 좌표 찾아 삭제
+            pointList.removeIf(p -> {
+                double d = RoutingExample.calculateDistance(
+                    new GHPoint(lat, lon),
+                    new GHPoint(p.get("lat"), p.get("lon"))
+                );
+                return d < 30;
+            });
+
+            try {
+                Files.writeString(file.toPath(), gson.toJson(pointList), StandardCharsets.UTF_8);
+                System.out.println("✅ 사용자 회피 포인트 삭제됨: (" + lat + ", " + lon + ")");
+                res.type("application/json");
+                return "{\"status\":\"ok\"}";
+            } catch (IOException e) {
+                e.printStackTrace();
+                res.type("application/json");
+                return "{\"status\":\"error\"}";
+            }
         });
 
 

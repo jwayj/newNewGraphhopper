@@ -348,13 +348,13 @@
             }
 
             // ngrok 주소로 변경 (예: https://abcd1234.ngrok-free.app/submit)
-            fetch('https://f6e2-14-39-146-251.ngrok-free.app/submit', {
+            fetch('https://1bff-222-110-177-64.ngrok-free.app/submit', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'ngrok-skip-browser-warning': '69420',
                 },
-                body: JSON.stringify({ avoidPoints: feedbackPoints }) // 배열로 보내야 함
+                body: JSON.stringify(payload) // 배열로 보내야 함
             })
             .then(async res => {
                 const text = await res.text();
