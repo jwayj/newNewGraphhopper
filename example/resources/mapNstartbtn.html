@@ -7,12 +7,14 @@
     <title>지도 화면</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-          html, body {
+        html,
+        body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
         }
+
         #map {
             width: 100%;
             height: 80%;
@@ -51,26 +53,52 @@
             cursor: pointer;
             margin: 10px auto;
         }
+
         .leaflet-tile-pane img {
             filter: hue-rotate(15deg);
         }
     </style>
-    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/ungveloper/web-fonts/GmarketSans/font-face.css" />
-    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/ungveloper/web-fonts/GmarketSans/font-family.css" />
+    <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/ungveloper/web-fonts/GmarketSans/font-face.css" />
+    <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/ungveloper/web-fonts/GmarketSans/font-family.css" />
 </head>
 <body>
-<!-- <body onload="loadMap()"> -->
     <div id="map"></div>
-    <!-- 러닝 시작 버튼 추가 -->
     <button id="startRunBtn" onclick="startRunning()"> 러닝 시작</button>
     <div id="info"></div>
-    <!--legend 요소 추가-->
     <div id="legend" style="padding:10px; background:#f8f8f8; margin-top:10px;"></div>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <!--firebase-->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script>
         const selectedEdges = new Set();
         const edgeMap = new Map();
+        let feedbackPoints = [];
+
+        let lastClickedOnMarker = false;  // 플래그 추가
+
+        function saveAvoidPoint(lat, lon) {
+            fetch('https://f6e2-14-39-146-251.ngrok-free.app/feedback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': '69420'
+                },
+                body: JSON.stringify({ avoidPoints: feedbackPoints })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert("✅ 회피 포인트 저장 완료!");
+                location.reload();
+            })
+            .catch(err => {
+                console.error("❌ 저장 실패", err);
+                alert("⚠️ 서버 저장 실패!");
+            });
+        }
 
         function loadMap() {
             const map = L.map('map').setView([37.5665, 126.9780], 14);
@@ -78,6 +106,44 @@
                 maxZoom: 19, attribution: '© OpenStreetMap contributors'
             }).addTo(map);
             loadRoute1(map);
+            loadAvoidPoints(map);
+
+            map.on('click', function (e) {
+                if (lastClickedOnMarker) {
+                    lastClickedOnMarker = false; // 초기화하고 무시
+                    return;
+                }
+
+                const lat = e.latlng.lat;
+                const lon = e.latlng.lng;
+
+                if (confirm(`이 위치를 회피 포인트로 저장할까요?\n(${lat.toFixed(5)}, ${lon.toFixed(5)})`)) {
+                    feedbackPoints.push({ lat, lon });
+
+                    const newMarker = L.circleMarker([lat, lon], {
+                        radius: 8,
+                        color: 'orange',
+                        fillColor: 'orange',
+                        fillOpacity: 0.7
+                    }).addTo(map);
+
+                    newMarker.selected = false;
+                    newMarker.on('click', function(e) {
+                        e.originalEvent.preventDefault();
+                        e.originalEvent.stopPropagation();
+
+                        lastClickedOnMarker = true; // 플래그 세우기
+
+                        if (confirm("이 회피 포인트를 삭제하시겠습니까?")) {
+                            deleteAvoidPoint(lat, lon, () => {
+                                map.removeLayer(newMarker);
+                            });
+                        }
+                    });
+
+                    saveAvoidPoint(lat, lon);
+                }
+            });
         }
 
         function loadRoute1(map) {
@@ -93,15 +159,6 @@
                         const segment = [latlngs[i], latlngs[i + 1]];
                         const polyline = L.polyline(segment, { color: 'blue', weight: 5 }).addTo(map);
                         edgeMap.set(edgeId, polyline);
-                        polyline.on('click', () => {
-                            if (selectedEdges.has(edgeId)) {
-                                polyline.setStyle({ color: 'blue' });
-                                selectedEdges.delete(edgeId);
-                            } else {
-                                polyline.setStyle({ color: 'yellow' });
-                                selectedEdges.add(edgeId);
-                            }
-                        });
                     });
 
                     L.marker(latlngs[0], { icon: createIcon('green') }).addTo(map).bindPopup('출발지');
@@ -111,6 +168,68 @@
                     const dist = calculateDistance(data);
                     updateLegendWithDistance('routingWithDesiredDistance', dist);
                 });
+        }
+
+        function loadAvoidPoints(map) {
+            fetch('avoid_points.json')
+                .then(res => res.json())
+                .then(points => {
+                    feedbackPoints = points;
+
+                    points.forEach((pt) => {
+                        const marker = L.circleMarker([pt.lat, pt.lon], {
+                            radius: 8,
+                            color: 'orange',
+                            fillColor: 'orange',
+                            fillOpacity: 0.7
+                        }).addTo(map);
+
+                        marker.selected = false;
+                        marker.on('click', function(e) {
+                            e.originalEvent.preventDefault();
+                            e.originalEvent.stopPropagation();
+
+                            lastClickedOnMarker = true; // 플래그 세우기
+
+                            if (confirm("이 회피 포인트를 삭제하시겠습니까?")) {
+                                deleteAvoidPoint(pt.lat, pt.lon, () => {
+                                    map.removeLayer(marker);
+                                });
+                            }
+                        });
+                    });
+                    console.log(`🟠 ${points.length}개의 회피 지점 마커 로드`);
+                })
+                .catch(err => {
+                    console.error("❌ 회피 포인트 로드 실패:", err);
+                });
+        }
+
+        function deleteAvoidPoint(lat, lon, callback) {
+            fetch('https://f6e2-14-39-146-251.ngrok-free.app/feedback-delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lat: lat, lon: lon })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    alert('회피 포인트가 삭제되었습니다.');
+
+                    feedbackPoints = feedbackPoints.filter(pt => {
+                        const dist = getDistance(lat, lon, pt.lat, pt.lon);
+                        return dist >= 30;
+                    });
+
+                    if (callback) callback();
+                } else {
+                    alert('회피 포인트 삭제에 실패했습니다.');
+                }
+            })
+            .catch(err => {
+                console.error('삭제 요청 실패:', err);
+                alert('서버 오류가 발생했습니다.');
+            });
         }
 
         function createIcon(color) {
@@ -157,6 +276,20 @@
             return 'gray';
         }
 
+        fetch('route_meta.json')
+            .then(r => r.json())
+            .then(meta => {
+                const id = meta.geoJsonId;
+                console.log('받은 geoJsonId:', id);
+                if (window.AndroidBridge && typeof AndroidBridge.setGeoJsonId === 'function') {
+                    AndroidBridge.setGeoJsonId(id);
+                    console.log('geoJson 수신 성공');
+                } else {
+                    console.warn('⚠️ AndroidBridge 미등록—WebView에서 테스트하세요.');
+                }
+            })
+            .catch(err => console.error('메타파일 로드 실패:', err));
+
         function startRunning() {
             if (window.AndroidNative && window.AndroidNative.startNativeRun) {
                 window.AndroidNative.startNativeRun();
@@ -173,7 +306,8 @@
         blockDirectAccess();
 
         document.addEventListener("DOMContentLoaded", () => {
-            loadMap();});
+            loadMap();
+        });
     </script>
 </body>
 

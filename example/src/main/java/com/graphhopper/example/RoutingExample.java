@@ -10,9 +10,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
-import java.util.Objects;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -24,7 +24,6 @@ import com.graphhopper.ResponsePath;
 import com.graphhopper.config.Profile;
 import static com.graphhopper.json.Statement.If;
 import static com.graphhopper.json.Statement.Op.LIMIT;
-import static com.graphhopper.json.Statement.Op.MULTIPLY;
 import com.graphhopper.routing.util.EdgeFilter;
 import com.graphhopper.routing.weighting.Weighting;
 import com.graphhopper.storage.index.LocationIndex;
@@ -52,6 +51,10 @@ public class RoutingExample {
     public static boolean same;
     public static String slope;
     public static double distance;
+    public static Map<Long, Double> slopeData;
+    public static Weighting baseWeighting;
+    //피드백 추가
+    public static List<GHPoint> globalAvoidPoints = new ArrayList<>();
 
     public static void main(String[] args) {
     // ✅ 1. 피드백 서버 시작
@@ -82,7 +85,7 @@ public class RoutingExample {
      String slopeLayerName = "_";
      GpkgSlopeReader slopeReader = new GpkgSlopeReader(slopeLayerName);
      // load된 slope 데이터 전체를 가져오기 (osm_id와 aggregated_angle_angle의 매핑)
-     Map<Long, Double> slopeData = slopeReader.getAllSlopeData();
+     slopeData = slopeReader.getAllSlopeData();
      
      if (slopeData.isEmpty()) {
          System.out.println("gpkg 파일로부터 경사도 데이터를 불러오지 못했습니다. 레이어 이름과 파일을 확인하세요.");
@@ -101,13 +104,14 @@ public class RoutingExample {
     RoutingExample.hopper = createGraphHopperInstance(relDir + "seoul-non-military.osm.pbf");
 
     // 최신 방식: 프로필("foot")을 통해 기본 Weighting 생성
+   
         Profile footProfile = hopper.getProfile("foot");
         if (footProfile == null) {
             throw new IllegalArgumentException("Profile 'foot' not found.");
         }
         com.graphhopper.util.PMap pmap = new com.graphhopper.util.PMap();
-        Weighting baseWeighting = hopper.createWeighting(footProfile, pmap);
-
+        baseWeighting = hopper.createWeighting(footProfile, pmap);
+    
         // 사용자 선호 옵션 문자열을 enum으로 변환 후 CustomSlopeEncodedValue 생성
         CustomSlopeEncodedValue.SlopePreference pref = CustomSlopeEncodedValue.SlopePreference.valueOf(SLOPE_PREFERENCE);
         CustomSlopeEncodedValue slopeEV = new CustomSlopeEncodedValue("custom_slope_penalty", slopeData, pref);
@@ -115,135 +119,29 @@ public class RoutingExample {
         // 기본 Weighting과 slopeEV를 사용하여 CustomSlopeWeighting 생성
         RoutingExample.customWeighting = new CustomSlopeWeighting(baseWeighting, slopeEV);
 
+        // 🔽 여기에 삽입
+        List<GHPoint> avoidPointsFromFile = new ArrayList<>();
+        try (Reader reader = new FileReader("example/resources/avoid_points.json")) {
+            Type listType = new TypeToken<List<Map<String, Double>>>() {}.getType();
+            List<Map<String, Double>> rawList = new Gson().fromJson(reader, listType);
+            for (Map<String, Double> p : rawList) {
+                avoidPointsFromFile.add(new GHPoint(p.get("lat"), p.get("lon")));
+            }
+            System.out.println("✅ avoid_points.json 로드됨, 회피 포인트 수: " + avoidPointsFromFile.size());
+        } catch (Exception e) {
+            System.err.println("❌ avoid_points.json 읽기 실패: " + e.getMessage());
+        }
+
+        // ✅ 전역 변수에 저장
+        globalAvoidPoints = avoidPointsFromFile;
+
+
         //서버 시작 위치 변경
         FeedbackServer.start();
-
-        // //✅ 5. 경로 계산 요청 -> FeedbackServer에서 실행행
-        // GHPoint start = new GHPoint(startLat, startLon);
-        // GHPoint end = new GHPoint(endLat, endLon);
-
-
-        // GHRequest request = new GHRequest(start, end).setProfile("foot");
-        // ResponsePath path = hopper.route(request).getBest();
-
-        // System.out.println("🚶 경로 거리: " + path.getDistance() + "m");
-
-
-
-        //     ResponsePath path1 = routingWithDesiredDistance(hopper, desiredDistance, start, end, customWeighting);
-        //     if (path1 != null) {
-        //         System.out.println("경로 거리: " + path1.getDistance() + " 미터");
-                
-        //         String geoJson1 = GeoJsonExporter1.toGeoJSON(path1);
-        //         System.out.println("GeoJSON:\n" + geoJson1);
-        //         try {
-        //             SaveGeoJson.saveToFile(geoJson1, "example/resources/route1.geojson");
-        //             System.out.println("GeoJSON1 saved to route1.geojson");
-        //         } catch (Exception e) {
-        //             System.err.println("Error saving GeoJSON: " + e.getMessage());
-        //         }
-        //     } else {
-        //         System.out.println("원하는 거리의 경로를 찾을 수 없습니다.(RoutingWithDesiredDistance)");
-        //     }
-
-        //     // 🚀 랜덤 경유지 생성 (500m ~ 1500m 범위 내 3개)
-        //     PointList randomWaypoints = generateRandomWaypoints(hopper, start, 3, 500, 1500);
-        //     System.out.println("🔍 route()에서 강제 삽입된 랜덤 경유지: " + randomWaypoints);
-
-        //     // 🚀 랜덤 경유지를 사용하여 경로 탐색
-        //     ResponsePath path2 = findPathWithWaypoints(hopper, start, randomWaypoints);
-
-        //     if (path2 != null) {
-        //         System.out.println("✅ 새로운 경로 거리: " + path2.getDistance() + " 미터");
-
-        //         String geoJson2 = GeoJsonExporter1.toGeoJSON(path2);
-        //         System.out.println("GeoJSON:\n" + geoJson2);
-        //         try {
-        //             SaveGeoJson.saveToFile(geoJson2, "example/resources/route2.geojson");
-        //             System.out.println("📂 GeoJSON2 saved to route2.geojson");
-        //         } catch (Exception e) {
-        //             System.err.println("❌ Error saving GeoJSON: " + e.getMessage());
-        //         }
-        //     } else {
-        //         System.out.println("❌ 경로를 찾을 수 없습니다.");
-        //     }
-
-        //     try {
-        //         // 출발지 정의
-        //         GHPoint startPoint = new GHPoint(37.566535, 126.977969); // 서울 시청 근처->이화여대
-        //         List<Integer> globalAvoidEdges = new ArrayList<>(); // 🔥 전역적으로 Edge 회피 저장
-        //         PointList globalAvoidPoints = new PointList(); // 🔥 전역적으로 Point 회피 저장
-        //         ResponsePath previousPath = null;
-            
-        //         for (int attempt = 0; attempt < 3; attempt++) { // 🔥 3번의 다른 경로 탐색 시도
-        //             System.out.println("🚀 " + (attempt + 1) + "번째 경로 탐색 시작...");
-            
-        //             ResponsePath diversePath = findDiverseOptimalPath(
-        //                 hopper, startPoint, desiredDistance, globalAvoidEdges, globalAvoidPoints, penalizedEdgeIds, customWeighting
-        //             );
-                            
-        //             if (diversePath != null) {
-        //                 System.out.println("✅ 최종 경로 거리: " + diversePath.getDistance() + " 미터");
-            
-        //                 // 📌 경로가 동일하면 다시 시도하도록 설정
-        //                 if (previousPath != null && Math.abs(diversePath.getDistance() - previousPath.getDistance()) < 5) {
-        //                     System.out.println("⚠️ 동일한 경로가 감지됨. 다시 탐색...");
-        //                     continue;
-        //                 }
-            
-        //                 // 📌 diversePath에서 PointList 추출
-        //                 PointList pathPoints = diversePath.getPoints();
-            
-        //                 // 📌 GeoJSON 생성
-        //                 String geoJson = GeoJsonExporter2.toGeoJSON(diversePath, new PointList(), pathPoints);
-        //                 System.out.println("GeoJSON:\n" + geoJson);
-            
-        //                 // 📌 GeoJSON 저장->경로 example파일로
-        //                 SaveGeoJson.saveToFile(geoJson, "example/resources/route.geojson");
-        //                  System.out.println("GeoJSON saved to route.geojson");
-
-                        
-        //                 List<String> geoJsonList = new ArrayList<>();
-
-        //                 if (path1 != null) {
-        //                     String geoJson1 = GeoJsonExporter1.toGeoJSON(path1);
-        //                     geoJsonList.add(geoJson1);
-        //                 }
-
-        //                 if (path2 != null) {
-        //                     String geoJson2 = GeoJsonExporter1.toGeoJSON(path2);
-        //                     geoJsonList.add(geoJson2);
-        //                 }
-
-        //                 if (diversePath != null) {
-        //                     pathPoints = diversePath.getPoints();
-        //                     String geoJson3 = GeoJsonExporter2.toGeoJSON(diversePath, new PointList(), pathPoints);
-        //                     geoJsonList.add(geoJson3);
-        //                 }
-                        
-            
-        //                 // 🔥 회피할 Edge 및 Points 저장
-        //                 for (int i = 0; i < pathPoints.size(); i++) {
-        //                     globalAvoidPoints.add(pathPoints.getLat(i), pathPoints.getLon(i));
-        //                 }
-        //                 // diversePath.getPathDetails().getOrDefault("edge_id", new ArrayList<>())
-        //                 //         .forEach(detail -> globalAvoidEdges.add((Integer) detail.getValue()));
-            
-        //                 previousPath = diversePath;
-        //             } else {
-        //                 System.out.println("❌ 적절한 경로를 찾을 수 없습니다.");
-        //             }
-        //         }
-        //     } catch (Exception e) {
-        //         e.printStackTrace();
-        //     } finally {
-        //         //hopper.close();
-        //     }
-    
         
     }
 
-    public static ResponsePath routingWithDesiredDistance(GraphHopper hopper, double desiredDistance, GHPoint start, GHPoint end,Weighting customWeighting) {
+    public static ResponsePath routingWithDesiredDistance(GraphHopper hopper, double desiredDistance, GHPoint start, GHPoint end,Weighting customWeighting, List<GHPoint> avoidPoints) {
         double tolerance = 100; // 200미터 오차 허용
         double searchRadius = desiredDistance * 0.75; // 원하는 거리의 75%로 검색 반경 설정
         
@@ -277,6 +175,14 @@ public class RoutingExample {
 
             
             if (path1 != null && path2 != null) {
+                ResponsePath combinedPath = combinePaths(path1, path2); // ✅ [추가] 경로 결합 먼저 수행
+
+                // ✅ [추가] 회피 지점 근처를 지나면 무시
+                if (avoidPoints != null && pathTouchesAvoidPoint(combinedPath, avoidPoints, 50)) {
+                    System.out.println("🚫 경로가 회피 지점 근처를 지나므로 무시");
+                    continue;
+                }
+
                 double totalDistance = path1.getDistance() + path2.getDistance();
                 double difference = Math.abs(totalDistance - desiredDistance);
                 
@@ -291,16 +197,22 @@ public class RoutingExample {
             }
         }
     
+          // ✅ [기존 fallback 경로에도 회피 검사 적용]
         if (bestPath == null) {
-            System.out.println("원하는 거리의 경로를 찾을 수 없습니다. 직접 연결 경로를 반환합니다.");
-            return findPath(hopper, start, end, "foot",customWeighting);
+            System.out.println("❌ 원하는 거리의 경로를 찾을 수 없습니다. 직접 연결 경로를 반환합니다.");
+            ResponsePath fallback = findPath(hopper, start, end, "foot", customWeighting);
+            if (avoidPoints != null && pathTouchesAvoidPoint(fallback, avoidPoints, 50)) {
+                System.out.println("🚫 fallback 경로도 회피 지점과 충돌 → null 반환");
+                return null;
+            }
+            return fallback;
         }
         
         System.out.println("가장 가까운 경로를 찾았습니다. 차이: " + closestDifference + " 미터");
         return bestPath;
     }
     
-    static PointList generateRandomWaypoints(GraphHopper hopper, GHPoint start, int numWaypoints, double minDistance, double maxDistance) {
+    static PointList generateRandomWaypoints(GraphHopper hopper, GHPoint start, int numWaypoints, double minDistance, double maxDistance, List<GHPoint> avoidPoints) {
         Random random = new Random();
         LocationIndex locationIndex = hopper.getLocationIndex();
         PointList waypoints = new PointList();
@@ -438,11 +350,6 @@ public class RoutingExample {
     
         CustomModel model = new CustomModel();
         model.addToSpeed(If("true", LIMIT, "5"));
-    
-        // for (Integer edgeId : penalizedEdgeIds) {
-        //     model.addToPriority(If("edge_id == " + edgeId, MULTIPLY, "0.1"));
-        // }
-    
         model.setDistanceInfluence(70.0);
     
         config.setProfiles(List.of(
@@ -505,53 +412,11 @@ public class RoutingExample {
     
         return waypoints;
     }
-
-    // 🚀 2. 경로 탐색 시 동일한 경로 회피 (강제적으로 다른 경로 찾기)
-    static ResponsePath findDifferentPath(GraphHopper hopper, GHPoint start, GHPoint end, PointList avoidPoints, List<Integer> avoidEdges) {
-        GHRequest request = new GHRequest()
-            .addPoint(start)
-            .addPoint(end)
-            .setProfile("foot")
-            .setAlgorithm("astarbi")  // 🔥 CH와 호환되는 알고리즘으로 변경
-            .putHint("ch.disable", true);  // 🔥 CH 비활성화
-    
-        if (!avoidPoints.isEmpty()) {
-            request.putHint("routing.avoid_points", avoidPoints);
-        }
-    
-        if (!avoidEdges.isEmpty()) {
-            request.putHint("routing.avoid_edges", avoidEdges);
-            System.out.println("🚧 Avoiding edges: " + avoidEdges);
-        }
-    
-        GHResponse response = hopper.route(request);
-        if (response.hasErrors()) {
-            System.err.println("❌ 경로 탐색 오류: " + response.getErrors());
-            return null;
-        }
-    
-        ResponsePath bestPath = response.getBest();
-        if (bestPath == null || bestPath.getDistance() < 50) { // 🔥 너무 짧은 경로면 다시 시도
-            System.out.println("⚠️ 경로가 너무 짧음. 다시 탐색...");
-            return null;
-        }
-    
-    
-    //     // 🔥 **모든 지나온 Edge를 회피하도록 설정 (강력한 회피 적용)**
-    //     List<PathDetail> edgeDetails = bestPath.getPathDetails().getOrDefault("edge_id", new ArrayList<>());
-    //     for (PathDetail detail : edgeDetails) {
-    //         avoidEdges.add((Integer) detail.getValue());
-    //     }
-    
-        return bestPath;
-    }
-    
-
     static ResponsePath findDiverseOptimalPath(GraphHopper hopper, GHPoint startPoint, double desiredDistance,
-    List<Integer> avoidEdges, PointList avoidPoints,
+    List<Integer> avoidEdges, List<GHPoint> avoidPoints,
     Set<Integer> penalizedEdgeIds, Weighting customWeighting, int attempt) {
 
-    final int MAX_ATTEMPTS = 10;
+    final int MAX_ATTEMPTS = 100;
 
     if (attempt > MAX_ATTEMPTS) {
         System.out.println("🚫 최대 시도 횟수 초과(" + MAX_ATTEMPTS + "). 기본 경로를 반환합니다.");
@@ -579,8 +444,6 @@ public class RoutingExample {
         GHPoint waypoint = new GHPoint(waypoints.getLat(i), waypoints.getLon(i));
 
         CustomModel customModel = new CustomModel();
-        // for (Integer edgeId : avoidEdges)
-        //     customModel.addToPriority(If("edge_id == " + edgeId, MULTIPLY, "0.1"));
 
         GHRequest req = new GHRequest(previousPoint, waypoint)
             .setProfile("foot")
@@ -597,7 +460,7 @@ public class RoutingExample {
         fullPath = (fullPath == null) ? segment : combinePaths(fullPath, segment);
         totalDistance += segment.getDistance();
 
-        avoidPoints.add(waypoint.lat, waypoint.lon);
+        // avoidPoints.add(new GHPoint(waypoint.lat, waypoint.lon)); //이거 넣으면 이전의 경유지 회피
         previousPoint = waypoint;
     }
 
@@ -610,6 +473,13 @@ public class RoutingExample {
         ResponsePath returnSegment = returnRsp.getBest();
         fullPath = (fullPath == null) ? returnSegment : combinePaths(fullPath, returnSegment);
         totalDistance += returnSegment.getDistance();
+
+         // ✅ ✅ ✅ [추가된 핵심 로직 시작] — 회피 지점 체크 로직
+        if (pathTouchesAvoidPoint(fullPath, avoidPoints, 50)) {
+            System.out.println("🚫 경로가 회피 지점 근처를 지남 → 재시도");
+            return findDiverseOptimalPath(hopper, startPoint, desiredDistance, avoidEdges, avoidPoints, penalizedEdgeIds, customWeighting, attempt + 1);
+        }
+    // ✅ ✅ ✅ [추가된 핵심 로직 끝]
     }
 
     // 거리 확인 후 재시도
@@ -622,62 +492,26 @@ public class RoutingExample {
     System.out.println("✅ distance를 고려한 경로를 찾았습니다. 최종 거리: " + totalDistance + " m");
 
     return fullPath;
-}
-
-
-    static ResponsePath findAlternativeReturnPath(GraphHopper hopper, GHPoint start, GHPoint end, List<Integer> avoidEdges, PointList avoidPoints) {
-        GHRequest request = new GHRequest()
-            .addPoint(start)
-            .addPoint(end)
-            .setProfile("foot")
-            .setAlgorithm(Parameters.Algorithms.ALT_ROUTE)  // 🔥 기존 경로를 강하게 회피
-            .putHint("ch.disable", true)  // 🔥 CH 비활성화하여 다양한 경로 탐색 가능
-            .putHint("alternative_route.max_paths", 3)  // 🔥 최대 3개의 대체 경로 탐색
-            .putHint("alternative_route.max_weight_factor", 3.0) // 🔥 최단 경로보다 3배 긴 경로도 허용
-    
-            // 🔥 지나온 Edge는 강제로 회피하도록 설정
-            .putHint("routing.avoid_edges", avoidEdges);
-    
-        GHResponse response = hopper.route(request);
-    
-        if (response.hasErrors()) {
-            System.out.println("❌ 대체 경로 탐색 실패: " + response.getErrors());
-            return null;
-        }
-    
-        return response.getBest();
     }
 
-    static ResponsePath findPathWithWaypoints(GraphHopper hopper, GHPoint start, PointList waypoints) {
-        
-        
-        CustomModel model = new CustomModel();
-        // for (Integer edgeId : penalizedEdgeIds) {
-        //     model.addToPriority(If("edge_id == " + edgeId, MULTIPLY, "0.1"));
-        // }
-    
-        GHRequest req = new GHRequest()
-            .setProfile("foot")
-            .setCustomModel(model) // 🔥 여기!
-            .setAlgorithm(Parameters.Algorithms.ALT_ROUTE)
-            .putHint("ch.disable", true)
-            .putHint("alternative_route.max_paths", 3)
-            .putHint("alternative_route.max_weight_factor", 2.0)
-            .addPoint(start);
-    
-        for (int i = 0; i < waypoints.size(); i++) {
-            req.addPoint(new GHPoint(waypoints.getLat(i), waypoints.getLon(i)));
+    /**
+     * 경로가 회피 지점 근처를 지나는지 확인하는 함수
+     * @param path          GHResponse에서 반환된 ResponsePath
+     * @param avoidPoints   회피할 GHPoint 좌표 리스트
+     * @param thresholdMeters 회피 반경 (미터 단위)
+     * @return true: 회피 지점 근처를 지남, false: 안전함
+     */
+    public static boolean pathTouchesAvoidPoint(ResponsePath path, List<GHPoint> avoidPoints, double thresholdMeters) {
+        PointList pathPoints = path.getPoints();
+        for (GHPoint routePt : pathPoints) {
+            for (GHPoint avoidPt : avoidPoints) {
+                if (calculateDistance(routePt, avoidPt) < thresholdMeters) {
+                    System.out.printf("🚫 회피 지점 (%.5f, %.5f) 근처 통과 (%.1f m)%n", avoidPt.lat, avoidPt.lon, calculateDistance(routePt, avoidPt));
+                    return true;
+                }
+            }
         }
-    
-        req.addPoint(start);
-    
-        GHResponse rsp = hopper.route(req);
-        if (rsp.hasErrors()) {
-            System.out.println("❌ 경로 탐색 실패: " + rsp.getErrors());
-            return null;
-        }
-    
-        return rsp.getBest();
-    
+        return false;
     }
+
 }
