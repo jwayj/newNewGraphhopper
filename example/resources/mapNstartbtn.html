@@ -64,12 +64,9 @@
         href="https://cdn.jsdelivr.net/gh/ungveloper/web-fonts/GmarketSans/font-family.css" />
 </head>
 <body>
-<!-- <body onload="loadMap()"> -->
     <div id="map"></div>
-    <!-- 러닝 시작 버튼 추가 -->
     <button id="startRunBtn" onclick="startRunning()"> 러닝 시작</button>
     <div id="info"></div>
-    <!--legend 요소 추가-->
     <div id="legend" style="padding:10px; background:#f8f8f8; margin-top:10px;"></div>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -280,7 +277,8 @@
         blockDirectAccess();
 
         document.addEventListener("DOMContentLoaded", () => {
-            loadMap();});
+            loadMap();
+        });
     </script>
 </body>
 
