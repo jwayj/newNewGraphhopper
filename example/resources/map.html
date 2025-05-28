@@ -82,15 +82,52 @@
     <script>
         const selectedEdges = new Set();
         const edgeMap = new Map();
+        const feedbackPoints = [];
 
         function loadMap() {
             const map = L.map('map').setView([37.5665, 126.9780], 14);
+
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19, attribution: '© OpenStreetMap contributors'
             }).addTo(map);
 
             loadRoute1(map);
+            loadAvoidPoints(map);
+
+            // 지도 클릭 이벤트 등록
+            map.on('click', function (e) {
+                console.log('지도 클릭 이벤트 발생', e.latlng);
+                const lat = e.latlng.lat;
+                const lon = e.latlng.lng;
+
+                if (confirm(`이 위치를 회피 포인트로 저장할까요?\n(${lat.toFixed(5)}, ${lon.toFixed(5)})`)) {
+                    feedbackPoints.push({ lat, lon });
+
+                    // 새 마커 생성 및 클릭 시 색 토글 이벤트 등록
+                    const newMarker = L.circleMarker([lat, lon], {
+                        radius: 8,
+                        color: 'orange',
+                        fillColor: 'orange',
+                        fillOpacity: 0.7
+                    }).addTo(map);
+
+                    newMarker.selected = false;
+                    newMarker.on('click', () => {
+                        if (newMarker.selected) {
+                            newMarker.setStyle({ color: 'orange', fillColor: 'orange' });
+                            newMarker.selected = false;
+                        } else {
+                            newMarker.setStyle({ color: 'yellow', fillColor: 'yellow' });
+                            newMarker.selected = true;
+                        }
+                    });
+
+                    saveAvoidPoint(lat, lon);
+                }
+            });
         }
+
+
 
         function loadRoute1(map) {
             fetch('./route1.geojson')
@@ -105,15 +142,15 @@
                         const segment = [latlngs[i], latlngs[i + 1]];
                         const polyline = L.polyline(segment, { color: 'blue', weight: 5 }).addTo(map);
                         edgeMap.set(edgeId, polyline);
-                        polyline.on('click', () => {
-                            if (selectedEdges.has(edgeId)) {
-                                polyline.setStyle({ color: 'blue' });
-                                selectedEdges.delete(edgeId);
-                            } else {
-                                polyline.setStyle({ color: 'yellow' });
-                                selectedEdges.add(edgeId);
-                            }
-                        });
+                        // polyline.on('click', () => {
+                        //     if (selectedEdges.has(edgeId)) {
+                        //         polyline.setStyle({ color: 'blue' });
+                        //         selectedEdges.delete(edgeId);
+                        //     } else {
+                        //         polyline.setStyle({ color: 'yellow' });
+                        //         selectedEdges.add(edgeId);
+                        //     }
+                        // });
                     });
 
                     L.marker(latlngs[0], { icon: createIcon('green') }).addTo(map).bindPopup('출발지');
@@ -166,6 +203,39 @@
             return 'gray';
         }
 
+        // ✅✅✅ [여기에 붙여넣기] 회피 지점 마커 표시 함수
+        function loadAvoidPoints(map) {
+        fetch('avoid_points.json')
+            .then(res => res.json())
+            .then(points => {
+                points.forEach((pt, idx) => {
+                    const marker = L.circleMarker([pt.lat, pt.lon], {
+                        radius: 8,
+                        color: 'orange',
+                        fillColor: 'orange',
+                        fillOpacity: 0.7
+                    }).addTo(map).bindPopup('회피 지점');
+
+                    // 클릭 시 색 변경을 위한 상태 관리
+                    marker.selected = false;
+                    marker.on('click', () => {
+                        if (marker.selected) {
+                            marker.setStyle({ color: 'orange', fillColor: 'orange' });
+                            marker.selected = false;
+                        } else {
+                            marker.setStyle({ color: 'yellow', fillColor: 'yellow' });
+                            marker.selected = true;
+                        }
+                    });
+                });
+                console.log(`🟠 ${points.length}개의 회피 지점 마커 로드`);
+            })
+            .catch(err => {
+                console.error("❌ 회피 포인트 로드 실패:", err);
+            });
+    }
+
+
         // 러닝 시작 버튼 핸들러
 
         function startRunning() {
@@ -176,26 +246,46 @@
             }
         }
 
+        function saveAvoidPoint(lat, lon) {
+            fetch('https://f6e2-14-39-146-251.ngrok-free.app/feedback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': '69420' // 필요 없으면 제거
+                },
+                body: JSON.stringify({ avoidPoints: feedbackPoints })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert("✅ 회피 포인트 저장 완료!");
+                location.reload(); // 새로고침해서 마커 반영
+            })
+            .catch(err => {
+                console.error("❌ 저장 실패", err);
+                alert("⚠️ 서버 저장 실패!");
+            });
+        }
+
+
         
 
    
 // 피드백 전송
 document.getElementById("feedbackBtn").addEventListener("click", () => {
-    const arr = Array.from(selectedEdges);
-    if (!arr.length) return alert("❗ 구간을 선택하세요!");
+    if (feedbackPoints.length === 0) {
+        return alert("❗ 피드백으로 보낼 지점을 클릭하세요!");
+    }
 
-    fetch('/feedback', {
+    fetch('https://f6e2-14-39-146-251.ngrok-free.app/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ selectedEdges: arr })
+        body: JSON.stringify({ avoidPoints: feedbackPoints }) // 🔥 핵심
     })
     .then(res => {
         if (res.ok) {
             alert("✅ 피드백 전송 완료!");
-            // 네이티브로 메인 화면 복귀 호출
-            if (window.AndroidNative && window.AndroidNative.returnToMain) {
-                window.AndroidNative.returnToMain();
-            }
+            feedbackPoints.length = 0; // 초기화
+            location.reload();
         } else {
             // 영상 촬영용 임시 수정 원래는 전송 실패 문구임
             alert("피드백 전송 완료!");
@@ -207,9 +297,9 @@ document.getElementById("feedbackBtn").addEventListener("click", () => {
     })
     .catch(err => {
         alert("⚠️ 네트워크 오류가 발생했습니다.");
+        console.error(err);
     });
 });
-
 
     </script>
 </body>

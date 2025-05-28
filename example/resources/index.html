@@ -347,47 +347,44 @@
                 return;
             }
 
-            // ngrok 주소로 변경 (예: https://abcd1234.ngrok-free.app/submit)
-            fetch('https://3ad5-115-161-96-106.ngrok-free.app/submit', {
+            fetch('https://f6e2-14-39-146-251.ngrok-free.app/submit', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'ngrok-skip-browser-warning': '69420',
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload)  // avoidPoints 제거, payload만 전송
             })
-                // 수정된 fetch 처리 부분
-                .then(async res => {
-                    const text = await res.text();
-                    console.log("응답 상태:", res.status);
-                    console.log("응답 내용:", text);
+            .then(async res => {
+                const text = await res.text();
+                console.log("응답 상태:", res.status);
+                console.log("응답 내용:", text);
 
-                    // 성공 조건 명확화
-                    const successConditions = [
-                        res.status === 200,
-                        text.includes("🟢 경로 생성 성공"),
-                    ];
+                const successConditions = [
+                    res.status === 200,
+                    text.includes("🟢 경로 생성 성공"),
+                ];
 
-                    if (!successConditions.every(condition => condition)) {
-                        throw new Error(
-                            text.includes("❌") ?
-                                text.split('\n').find(line => line.includes("❌")) :  // 가장 첫 번째 에러 라인 추출
-                                `서버 오류 (${res.status}): ${text.substring(0, 50)}...`
-                        );
-                    }
+                if (!successConditions.every(condition => condition)) {
+                    throw new Error(
+                        text.includes("❌") ?
+                            text.split('\n').find(line => line.includes("❌")) :
+                            `서버 오류 (${res.status}): ${text.substring(0, 50)}...`
+                    );
+                }
 
-                    window.location.href = 'mapNstartbtn.html';
-                })
-                .catch(err => {
-                    console.error("fetch 에러:", err);
-                    alert(`🚨 경로 생성 실패\n 다시 시도해주세요`);  // 사용자 친화적 메시지
-                    document.getElementById('loading').style.display = 'none';  // 로딩 인디케이터 숨기기
-                })
-                .finally(() => {
-                    hideLoading();      // ③ 성공·실패 상관없이 무조건 숨기기
-                });
-
+                window.location.href = 'mapNstartbtn.html';
+            })
+            .catch(err => {
+                console.error("fetch 에러:", err);
+                alert(`🚨 경로 생성 실패\n 다시 시도해주세요`);
+                document.getElementById('loading').style.display = 'none';
+            })
+            .finally(() => {
+                hideLoading();
+            });
         }
+
 
     </script>
 </body>
