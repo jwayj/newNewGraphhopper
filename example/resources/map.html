@@ -247,11 +247,10 @@
         }
 
         function saveAvoidPoint(lat, lon) {
-            fetch('https://1bff-222-110-177-64.ngrok-free.app/feedback', {
+            fetch('http://15.164.222.69:80/feedback', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'ngrok-skip-browser-warning': '69420' // 필요 없으면 제거
                 },
                 body: JSON.stringify({ avoidPoints: feedbackPoints })
             })
@@ -276,7 +275,7 @@ document.getElementById("feedbackBtn").addEventListener("click", () => {
         return alert("❗ 피드백으로 보낼 지점을 클릭하세요!");
     }
 
-    fetch('https://f6e2-14-39-146-251.ngrok-free.app/feedback', {
+    fetch('http://15.164.222.69:80/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ avoidPoints: feedbackPoints }) // 🔥 핵심

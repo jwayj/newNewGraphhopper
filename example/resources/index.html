@@ -347,12 +347,10 @@
                 return;
             }
 
-            // ngrok 주소로 변경 (예: https://abcd1234.ngrok-free.app/submit)
-            fetch('https://1bff-222-110-177-64.ngrok-free.app/submit', {
+            fetch('http://15.164.222.69:80/submit', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'ngrok-skip-browser-warning': '69420',
                 },
                 body: JSON.stringify(payload) // 배열로 보내야 함
             })
