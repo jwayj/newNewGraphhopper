@@ -1,9 +1,11 @@
 package com.graphhopper.example;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,14 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import java.io.File;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import java.lang.reflect.Type;   // ✅ 이게 꼭 필요함!
-
 import org.json.JSONObject;
 
-import com.google.api.core.ApiFuture;
+import com.google.api.core.ApiFuture;   // ✅ 이게 꼭 필요함!
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.Firestore;
@@ -29,6 +26,7 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.cloud.FirestoreClient;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.graphhopper.ResponsePath;
 import com.graphhopper.util.PointList;
 import com.graphhopper.util.shapes.GHPoint;
