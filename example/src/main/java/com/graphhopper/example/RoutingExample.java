@@ -2,8 +2,11 @@ package com.graphhopper.example;
     
 import java.io.File;
 import java.io.FileReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -61,7 +64,8 @@ public class RoutingExample {
 
     // ✅ 2. 피드백 파일 로드 (새 JSON 구조 대응)
     Set<Integer> penalizedEdgeIds = new HashSet<>();
-    try (Reader reader = new FileReader("example/resources/feedback_log.json")) {
+    InputStream is = RoutingExample.class.getResourceAsStream("/feedback_log.json");
+    try (Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
         Gson gson = new Gson();
         Type type = new TypeToken<Map<String, List<Map<String, Integer>>>>() {}.getType();
         Map<String, List<Map<String, Integer>>> feedback = gson.fromJson(reader, type);
