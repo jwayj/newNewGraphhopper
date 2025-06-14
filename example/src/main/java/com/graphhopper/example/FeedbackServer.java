@@ -39,7 +39,7 @@ public class FeedbackServer {
     public static void start() {
         try {
             FileInputStream serviceAccount = new FileInputStream(
-                    "backend/runpt-aaae1-firebase-adminsdk-fbsvc-24d537642e.json");
+                    "runpt-aaae1-firebase-adminsdk-fbsvc-24d537642e.json");
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
                     .build();
@@ -283,7 +283,7 @@ public class FeedbackServer {
             double lat = point.get("lat");
             double lon = point.get("lon");
 
-            File file = new File("example/resources/avoid_points.json");
+            File file = new File("avoid_points.json");
             List<Map<String, Double>> pointList = new ArrayList<>();
 
             if (file.exists()) {
