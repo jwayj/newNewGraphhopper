@@ -283,7 +283,7 @@ public class FeedbackServer {
             double lat = point.get("lat");
             double lon = point.get("lon");
 
-            File file = new File("avoid_points.json");
+            File file = new File("./avoid_points.json");
             List<Map<String, Double>> pointList = new ArrayList<>();
 
             if (file.exists()) {
