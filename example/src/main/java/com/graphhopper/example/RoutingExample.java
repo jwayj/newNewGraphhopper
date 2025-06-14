@@ -122,7 +122,7 @@ public class RoutingExample {
 
         // 🔽 여기에 삽입
         List<GHPoint> avoidPointsFromFile = new ArrayList<>();
-        try (Reader reader = new FileReader("example/resources/avoid_points.json")) {
+        try (Reader reader = new FileReader("avoid_points.json")) {
             Type listType = new TypeToken<List<Map<String, Double>>>() {}.getType();
             List<Map<String, Double>> rawList = new Gson().fromJson(reader, listType);
             for (Map<String, Double> p : rawList) {
