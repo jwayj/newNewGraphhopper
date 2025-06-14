@@ -6,6 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.reflect.Type;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,8 +19,8 @@ import java.util.concurrent.ExecutionException;
 
 import org.json.JSONObject;
 
-import com.google.api.core.ApiFuture;   // ✅ 이게 꼭 필요함!
-import com.google.auth.oauth2.GoogleCredentials;
+import com.google.api.core.ApiFuture;
+import com.google.auth.oauth2.GoogleCredentials;   // ✅ 이게 꼭 필요함!
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.Firestore;
 import com.google.firebase.FirebaseApp;
@@ -30,13 +31,23 @@ import com.google.gson.reflect.TypeToken;
 import com.graphhopper.ResponsePath;
 import com.graphhopper.util.PointList;
 import com.graphhopper.util.shapes.GHPoint;
+import com.sun.net.httpserver.HttpServer;
 
 import static spark.Spark.port;
 import static spark.Spark.post;
 import static spark.Spark.staticFiles;
 
 public class FeedbackServer {
-    public static void start() {
+    public static void start(int port) throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+        server.createContext("/", exchange -> {
+            byte[] bytes = Files.readAllBytes(Path.of("example/resources/index.html"));
+            exchange.sendResponseHeaders(200, bytes.length);
+            exchange.getResponseBody().write(bytes);
+            exchange.close();
+        });
+        server.start();
+        System.out.println("Server started on port " + port);
         try {
             FileInputStream serviceAccount = new FileInputStream(
                     "runpt-aaae1-firebase-adminsdk-fbsvc-24d537642e.json");
@@ -283,7 +294,7 @@ public class FeedbackServer {
             double lat = point.get("lat");
             double lon = point.get("lon");
 
-            File file = new File("./avoid_points.json");
+            File file = new File("avoid_points.json");
             List<Map<String, Double>> pointList = new ArrayList<>();
 
             if (file.exists()) {
