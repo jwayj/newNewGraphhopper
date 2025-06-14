@@ -13,6 +13,7 @@ android/libs/graphhopper-*-android.jar
 */nbactions.xml
 .idea
 .idea/
+*.pem
 *iml
 # keep these web/ paths for now. they are outdated but probably useful for a while in case we switch between branches
 /web/node
