@@ -227,7 +227,7 @@ public class FeedbackServer {
                 return "{\"status\":\"no_points\"}";
             }
 
-            File file = new File("example/resources/avoid_points.json");
+            File file = new File("avoid_points.json");
             List<Map<String, Double>> pointList = new ArrayList<>();
 
             try {
