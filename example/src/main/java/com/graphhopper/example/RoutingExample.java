@@ -2,15 +2,11 @@ package com.graphhopper.example;
     
 import java.io.File;
 import java.io.FileReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Type;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -62,26 +58,26 @@ public class RoutingExample {
     public static void main(String[] args) {
     // ✅ 1. 피드백 서버 시작
 
-    // ✅ 2. 피드백 파일 로드 (새 JSON 구조 대응)
-    Set<Integer> penalizedEdgeIds = new HashSet<>();
-    InputStream is = RoutingExample.class.getResourceAsStream("/feedback_log.json");
-    try (Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-        Gson gson = new Gson();
-        Type type = new TypeToken<Map<String, List<Map<String, Integer>>>>() {}.getType();
-        Map<String, List<Map<String, Integer>>> feedback = gson.fromJson(reader, type);
+    // // ✅ 2. 피드백 파일 로드 (새 JSON 구조 대응)
+    // Set<Integer> penalizedEdgeIds = new HashSet<>();
+    // InputStream is = RoutingExample.class.getResourceAsStream("/feedback_log.json");
+    // try (Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+    //     Gson gson = new Gson();
+    //     Type type = new TypeToken<Map<String, List<Map<String, Integer>>>>() {}.getType();
+    //     Map<String, List<Map<String, Integer>>> feedback = gson.fromJson(reader, type);
 
-        for (List<Map<String, Integer>> edgeList : feedback.values()) {
-            for (Map<String, Integer> edgeObj : edgeList) {
-                if (edgeObj.containsKey("edge")) {
-                    penalizedEdgeIds.add(edgeObj.get("edge"));
-                }
-            }
-        }
+    //     for (List<Map<String, Integer>> edgeList : feedback.values()) {
+    //         for (Map<String, Integer> edgeObj : edgeList) {
+    //             if (edgeObj.containsKey("edge")) {
+    //                 penalizedEdgeIds.add(edgeObj.get("edge"));
+    //             }
+    //         }
+    //     }
 
-        System.out.println("✅ feedback_log.json 에서 penalized edge IDs 로드 완료: " + penalizedEdgeIds);
-    } catch (Exception e) {
-        System.err.println("❌ feedback_log.json 읽기 실패: " + e.getMessage());
-    }
+    //     System.out.println("✅ feedback_log.json 에서 penalized edge IDs 로드 완료: " + penalizedEdgeIds);
+    // } catch (Exception e) {
+    //     System.err.println("❌ feedback_log.json 읽기 실패: " + e.getMessage());
+    // }
 
      // ✅ 3. gpkg 파일에서 경사도 데이터를 읽어오는 테스트 코드 추가
      System.out.println("=== gpkg slope 데이터 로딩 테스트 ===");
