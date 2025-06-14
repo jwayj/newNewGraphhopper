@@ -62,7 +62,7 @@ public class FeedbackServer {
             return;
         }
 
-        port(4567);
+        port(80);
         staticFiles.externalLocation("example/resources"); // HTML 정적 파일 경로
 
         post("/submit", (req, res) -> {
