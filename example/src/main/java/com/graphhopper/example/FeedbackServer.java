@@ -33,7 +33,6 @@ import com.graphhopper.util.PointList;
 import com.graphhopper.util.shapes.GHPoint;
 import com.sun.net.httpserver.HttpServer;
 
-import static spark.Spark.port;
 import static spark.Spark.post;
 import static spark.Spark.staticFiles;
 
@@ -62,7 +61,6 @@ public class FeedbackServer {
             return;
         }
 
-        port(8080);
         staticFiles.externalLocation("example/resources"); // HTML 정적 파일 경로
 
         post("/submit", (req, res) -> {
