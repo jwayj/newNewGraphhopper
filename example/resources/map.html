@@ -247,7 +247,7 @@
         }
 
         function saveAvoidPoint(lat, lon) {
-            fetch('http://15.164.222.69:80/feedback', {
+            fetch('http://15.164.222.69:8080/feedback', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -275,7 +275,7 @@ document.getElementById("feedbackBtn").addEventListener("click", () => {
         return alert("❗ 피드백으로 보낼 지점을 클릭하세요!");
     }
 
-    fetch('http://15.164.222.69:80/feedback', {
+    fetch('http://15.164.222.69:8080/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ avoidPoints: feedbackPoints }) // 🔥 핵심

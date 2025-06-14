@@ -82,7 +82,7 @@
         let lastClickedOnMarker = false;  // 플래그 추가
 
         function saveAvoidPoint(lat, lon) {
-            fetch('http://15.164.222.69:80/feedback', {
+            fetch('http://15.164.222.69:8080/feedback', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -219,7 +219,7 @@
         }
 
         function deleteAvoidPoint(lat, lon, callback) {
-            fetch('http://15.164.222.69:80/feedback-delete', {
+            fetch('http://15.164.222.69:8080/feedback-delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ lat: lat, lon: lon })

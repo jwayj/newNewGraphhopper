@@ -139,7 +139,7 @@ public class RoutingExample {
 
         //서버 시작 위치 변경
         try {
-            FeedbackServer.start(80); // 예시
+            FeedbackServer.start(8080); // 예시
         } catch (IOException e) {
             e.printStackTrace();
         }
