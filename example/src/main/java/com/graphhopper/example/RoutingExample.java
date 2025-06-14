@@ -2,6 +2,7 @@ package com.graphhopper.example;
     
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
 import java.io.Reader;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -137,7 +138,12 @@ public class RoutingExample {
 
 
         //서버 시작 위치 변경
-        FeedbackServer.start();
+        try {
+            FeedbackServer.start(80); // 예시
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         
     }
 
