@@ -11,3 +11,4 @@
 9. 위 과정이 끝나면 3번 과정 한 번 더 실행
 10. 콘솔창을 열어서 ngrok http --domain=alpaca-worthy-polecat.ngrok-free.app 4567 실행해서 서버 오픈
 11. vscode에서 [RoutingExample.java](http://RoutingExample.java) 파일을 실행하면 됨
+12. 이후 RunPTApp README.md 이어서 하기
