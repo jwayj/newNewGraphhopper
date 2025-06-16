@@ -70,40 +70,63 @@
     </style>
 </head>
 
-<body onload="loadMap()">
+<body>
     <div id="map"></div>
     <div id="info"></div>
     <div id="legend">
-        <p>구간을 선택하면 노란색으로 표시됩니다</p>
+        <p>지점을 선택하면 회피 지점이 추가됩니다.</p>
     </div>
-    <button id="feedbackBtn">사용자 피드백 보내기</button>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
         const selectedEdges = new Set();
         const edgeMap = new Map();
-        const feedbackPoints = [];
+
+        let feedbackPoints = [];
+
+        let lastClickedOnMarker = false;  // 플래그 추가
+
+        function saveAvoidPoint(lat, lon) {
+            fetch('https://98e7-222-110-177-98.ngrok-free.app/feedback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': '69420'
+                },
+                body: JSON.stringify({ avoidPoints: feedbackPoints })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert("✅ 회피 포인트 저장 완료!");
+                location.reload();
+            })
+            .catch(err => {
+                console.error("❌ 저장 실패", err);
+                alert("⚠️ 서버 저장 실패!");
+            });
+        }
+
 
         function loadMap() {
             const map = L.map('map').setView([37.5665, 126.9780], 14);
-
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19, attribution: '© OpenStreetMap contributors'
             }).addTo(map);
-
             loadRoute1(map);
             loadAvoidPoints(map);
 
-            // 지도 클릭 이벤트 등록
             map.on('click', function (e) {
-                console.log('지도 클릭 이벤트 발생', e.latlng);
+                if (lastClickedOnMarker) {
+                    lastClickedOnMarker = false; // 초기화하고 무시
+                    return;
+                }
+
                 const lat = e.latlng.lat;
                 const lon = e.latlng.lng;
 
                 if (confirm(`이 위치를 회피 포인트로 저장할까요?\n(${lat.toFixed(5)}, ${lon.toFixed(5)})`)) {
                     feedbackPoints.push({ lat, lon });
 
-                    // 새 마커 생성 및 클릭 시 색 토글 이벤트 등록
                     const newMarker = L.circleMarker([lat, lon], {
                         radius: 8,
                         color: 'orange',
@@ -112,22 +135,24 @@
                     }).addTo(map);
 
                     newMarker.selected = false;
-                    newMarker.on('click', () => {
-                        if (newMarker.selected) {
-                            newMarker.setStyle({ color: 'orange', fillColor: 'orange' });
-                            newMarker.selected = false;
-                        } else {
-                            newMarker.setStyle({ color: 'yellow', fillColor: 'yellow' });
-                            newMarker.selected = true;
+                    newMarker.on('click', function(e) {
+                        e.originalEvent.preventDefault();
+                        e.originalEvent.stopPropagation();
+
+                        lastClickedOnMarker = true; // 플래그 세우기
+
+                        if (confirm("이 회피 포인트를 삭제하시겠습니까?")) {
+                            deleteAvoidPoint(lat, lon, () => {
+                                map.removeLayer(newMarker);
+                            });
                         }
                     });
 
                     saveAvoidPoint(lat, lon);
                 }
             });
+
         }
-
-
 
         function loadRoute1(map) {
             fetch('./route1.geojson')
@@ -142,6 +167,7 @@
                         const segment = [latlngs[i], latlngs[i + 1]];
                         const polyline = L.polyline(segment, { color: 'blue', weight: 5 }).addTo(map);
                         edgeMap.set(edgeId, polyline);
+
                         // polyline.on('click', () => {
                         //     if (selectedEdges.has(edgeId)) {
                         //         polyline.setStyle({ color: 'blue' });
@@ -162,6 +188,71 @@
                 });
         }
 
+        //point로 피드백 추가
+         function loadAvoidPoints(map) {
+            fetch('avoid_points.json')
+                .then(res => res.json())
+                .then(points => {
+                    feedbackPoints = points;
+
+                    points.forEach((pt) => {
+                        const marker = L.circleMarker([pt.lat, pt.lon], {
+                            radius: 8,
+                            color: 'orange',
+                            fillColor: 'orange',
+                            fillOpacity: 0.7
+                        }).addTo(map);
+
+                        marker.selected = false;
+                        marker.on('click', function(e) {
+                            e.originalEvent.preventDefault();
+                            e.originalEvent.stopPropagation();
+
+                            lastClickedOnMarker = true; // 플래그 세우기
+
+                            if (confirm("이 회피 포인트를 삭제하시겠습니까?")) {
+                                deleteAvoidPoint(pt.lat, pt.lon, () => {
+                                    map.removeLayer(marker);
+                                });
+                            }
+                        });
+                    });
+                    console.log(`🟠 ${points.length}개의 회피 지점 마커 로드`);
+                })
+                .catch(err => {
+                    console.error("❌ 회피 포인트 로드 실패:", err);
+                });
+        }
+
+        function deleteAvoidPoint(lat, lon, callback) {
+            fetch('https://98e7-222-110-177-98.ngrok-free.app/feedback-delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lat: lat, lon: lon })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    alert('회피 포인트가 삭제되었습니다.');
+
+                    feedbackPoints = feedbackPoints.filter(pt => {
+                        const dist = getDistance(lat, lon, pt.lat, pt.lon);
+                        return dist >= 30;
+                    });
+
+                    if (callback) callback();
+                } else {
+                    alert('회피 포인트 삭제에 실패했습니다.');
+                }
+            })
+            .catch(err => {
+                console.error('삭제 요청 실패:', err);
+                alert('서버 오류가 발생했습니다.');
+            });
+        }
+
+
+
         function createIcon(color) {
             return L.icon({
                 iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
@@ -177,6 +268,7 @@
             }
             return d;
         }
+
         function getDistance(lat1, lon1, lat2, lon2) {
             const R = 6371000;
             const dLat = deg2rad(lat2 - lat1), dLon = deg2rad(lon2 - lon1);
@@ -185,6 +277,7 @@
                 Math.sin(dLon / 2) ** 2;
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         }
+
         function deg2rad(deg) { return deg * Math.PI / 180; }
 
         function updateLegendWithDistance(name, distance) {
@@ -197,110 +290,45 @@
             `;
             legend.appendChild(item);
         }
+
         function getColorForRoute(name) {
             if (name === 'routingWithDesiredDistance') return 'blue';
             if (name === 'routingWithCircle') return 'green';
             return 'gray';
         }
 
-        // ✅✅✅ [여기에 붙여넣기] 회피 지점 마커 표시 함수
-        function loadAvoidPoints(map) {
-        fetch('avoid_points.json')
-            .then(res => res.json())
-            .then(points => {
-                points.forEach((pt, idx) => {
-                    const marker = L.circleMarker([pt.lat, pt.lon], {
-                        radius: 8,
-                        color: 'orange',
-                        fillColor: 'orange',
-                        fillOpacity: 0.7
-                    }).addTo(map).bindPopup('회피 지점');
-
-                    // 클릭 시 색 변경을 위한 상태 관리
-                    marker.selected = false;
-                    marker.on('click', () => {
-                        if (marker.selected) {
-                            marker.setStyle({ color: 'orange', fillColor: 'orange' });
-                            marker.selected = false;
-                        } else {
-                            marker.setStyle({ color: 'yellow', fillColor: 'yellow' });
-                            marker.selected = true;
-                        }
-                    });
-                });
-                console.log(`🟠 ${points.length}개의 회피 지점 마커 로드`);
+        fetch('route_meta.json')
+            .then(r => r.json())
+            .then(meta => {
+                const id = meta.geoJsonId;
+                console.log('받은 geoJsonId:', id);
+                if (window.AndroidBridge && typeof AndroidBridge.setGeoJsonId === 'function') {
+                    AndroidBridge.setGeoJsonId(id);
+                    console.log('geoJson 수신 성공');
+                } else {
+                    console.warn('⚠️ AndroidBridge 미등록—WebView에서 테스트하세요.');
+                }
             })
-            .catch(err => {
-                console.error("❌ 회피 포인트 로드 실패:", err);
-            });
-    }
-
-
-        // 러닝 시작 버튼 핸들러
+            .catch(err => console.error('메타파일 로드 실패:', err));
 
         function startRunning() {
             if (window.AndroidNative && window.AndroidNative.startNativeRun) {
                 window.AndroidNative.startNativeRun();
             } else {
-            alert('네이티브 인터페이스를 찾을 수 없습니다.');
+                alert('네이티브 인터페이스를 찾을 수 없습니다.');
             }
         }
-
-        function saveAvoidPoint(lat, lon) {
-            fetch('https://1bff-222-110-177-64.ngrok-free.app/feedback', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'ngrok-skip-browser-warning': '69420' // 필요 없으면 제거
-                },
-                body: JSON.stringify({ avoidPoints: feedbackPoints })
-            })
-            .then(res => res.json())
-            .then(data => {
-                alert("✅ 회피 포인트 저장 완료!");
-                location.reload(); // 새로고침해서 마커 반영
-            })
-            .catch(err => {
-                console.error("❌ 저장 실패", err);
-                alert("⚠️ 서버 저장 실패!");
-            });
-        }
-
-
-        
-
-   
-// 피드백 전송
-document.getElementById("feedbackBtn").addEventListener("click", () => {
-    if (feedbackPoints.length === 0) {
-        return alert("❗ 피드백으로 보낼 지점을 클릭하세요!");
-    }
-
-    fetch('https://f6e2-14-39-146-251.ngrok-free.app/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ avoidPoints: feedbackPoints }) // 🔥 핵심
-    })
-    .then(res => {
-        if (res.ok) {
-            alert("✅ 피드백 전송 완료!");
-            feedbackPoints.length = 0; // 초기화
-            location.reload();
-        } else {
-            // 영상 촬영용 임시 수정 원래는 전송 실패 문구임
-            alert("피드백 전송 완료!");
-                        // 네이티브로 메인 화면 복귀 호출
-            if (window.AndroidNative && window.AndroidNative.returnToMain) {
-                window.AndroidNative.returnToMain();
+        function blockDirectAccess() {
+            if (window.opener == null) {
+                console.warn("직접 접속 차단됨");
+                return;
             }
         }
-    })
-    .catch(err => {
-        alert("⚠️ 네트워크 오류가 발생했습니다.");
-        console.error(err);
-    });
-});
+        blockDirectAccess();
 
+        document.addEventListener("DOMContentLoaded", () => {
+            loadMap();
+        });
     </script>
 </body>
 

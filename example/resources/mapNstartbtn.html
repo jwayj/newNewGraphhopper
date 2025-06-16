@@ -82,7 +82,7 @@
         let lastClickedOnMarker = false;  // 플래그 추가
 
         function saveAvoidPoint(lat, lon) {
-            fetch('https://1bff-222-110-177-64.ngrok-free.app/feedback', {
+            fetch('https://98e7-222-110-177-98.ngrok-free.app/feedback', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -220,7 +220,7 @@
         }
 
         function deleteAvoidPoint(lat, lon, callback) {
-            fetch('https://1bff-222-110-177-64.ngrok-free.app/feedback-delete', {
+            fetch('https://98e7-222-110-177-98.ngrok-free.app/feedback-delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ lat: lat, lon: lon })
