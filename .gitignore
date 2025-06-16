@@ -1,7 +1,6 @@
 target/
 *~
 *-gh/
-*.osm
 nbactions*.xml
 /config.yml
 build.xml
@@ -23,7 +22,6 @@ android/libs/graphhopper-*-android.jar
 /web-bundle/src/main/resources/com/graphhopper/maps/js/config/options_prod.js
 /web-bundle/src/main/resources/com/graphhopper/maps/js/main.js
 /web/dependency-reduced-pom.xml
-*.pbf
 !/core/src/test/resources/com/graphhopper/reader/osm/*.pbf
 *.dem
 *.log
